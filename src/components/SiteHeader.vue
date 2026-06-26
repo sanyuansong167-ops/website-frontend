@@ -46,6 +46,15 @@ function asText(value) {
   return String(value).trim()
 }
 
+function firstText(...values) {
+  for (const value of values) {
+    const text = asText(value)
+    if (text) return text
+  }
+
+  return ''
+}
+
 function asBoolean(value) {
   return value === true || value === 1 || value === '1' || asText(value).toLowerCase() === 'true'
 }
@@ -144,7 +153,7 @@ function getNavigationDestination(item, label, targetType) {
 function mapNavigationItem(item) {
   if (!isRecord(item)) return null
 
-  const label = asText(item.menuName || item.label || item.name || item.title)
+  const label = firstText(item.menuName, item.label, item.name, item.title)
   if (!label) return null
 
   const targetType = normalizeTargetType(item.targetType, item)
@@ -178,15 +187,19 @@ navItems.value = mapNavigation(defaultNavigation) || []
 function mapSiteConfig(data) {
   if (!isRecord(data)) return null
 
+  const siteTitle = firstText(data.siteTitle, data.siteName, data.name, data.companyName)
+  const slogan = firstText(data.brandSlogan, data.brandTagline, data.slogan)
+  const logo = firstText(data.logoLightUrl, data.logoDarkUrl, data.logoUrl, data.logo)
+
   return {
-    logo: asText(data.logoLightUrl || data.logoDarkUrl) || defaultSiteConfig.logo,
+    logo: logo || defaultSiteConfig.logo,
     logoText: defaultSiteConfig.logoText,
-    name: asText(data.siteTitle) || defaultSiteConfig.name,
-    slogan: asText(data.brandSlogan || data.brandTagline) || defaultSiteConfig.slogan,
+    name: siteTitle || defaultSiteConfig.name,
+    slogan: slogan || defaultSiteConfig.slogan,
     seo: {
-      title: asText(data.siteTitle) || defaultSiteConfig.seo.title,
-      description: asText(data.seoDescription) || defaultSiteConfig.seo.description,
-      keywords: asText(data.seoKeywords) || asText(defaultSiteConfig.seo.keywords),
+      title: siteTitle || defaultSiteConfig.seo.title,
+      description: firstText(data.seoDescription, defaultSiteConfig.seo.description),
+      keywords: firstText(data.seoKeywords, defaultSiteConfig.seo.keywords),
     },
   }
 }

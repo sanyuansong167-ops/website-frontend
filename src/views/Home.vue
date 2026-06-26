@@ -227,14 +227,32 @@ function asText(value: unknown) {
   return String(value).trim()
 }
 
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    const text = asText(value)
+    if (text) return text
+  }
+
+  return ''
+}
+
+function fillToDefaultCount<T>(items: T[], defaults: T[]) {
+  const maxCount = defaults.length
+  const limited = items.slice(0, maxCount)
+
+  if (limited.length >= maxCount) return limited
+
+  return [...limited, ...defaults.slice(limited.length)]
+}
+
 function mapHomeBanner(data: unknown) {
   const source = Array.isArray(data) ? data[0] : data
   if (!isRecord(source)) return null
 
   return {
-    title: asText(source.mainTitle) || defaultHero.title,
-    subtitle: asText(source.subTitle) || defaultHero.subtitle,
-    backgroundImage: asText(source.backgroundImageUrl) || defaultHero.backgroundImage,
+    title: firstText(source.mainTitle, source.title, source.name) || defaultHero.title,
+    subtitle: firstText(source.subTitle, source.subtitle, source.description) || defaultHero.subtitle,
+    backgroundImage: firstText(source.backgroundImageUrl, source.imageUrl, source.backgroundImage) || defaultHero.backgroundImage,
   }
 }
 
@@ -246,11 +264,11 @@ function mapMetrics(data: unknown) {
     .map((item) => ({
       value: asText(item.value),
       unit: asText(item.unit),
-      description: asText(item.description),
+      description: firstText(item.description, item.label, item.title, item.name),
     }))
     .filter((item) => item.value && item.description)
 
-  return mapped.length ? mapped : null
+  return mapped.length ? fillToDefaultCount(mapped, defaultMetrics) : null
 }
 
 function mapHonors(data: unknown) {
@@ -259,12 +277,12 @@ function mapHonors(data: unknown) {
   const mapped = data
     .filter(isRecord)
     .map((item) => ({
-      name: asText(item.name),
-      iconUrl: asText(item.iconUrl),
+      name: firstText(item.name, item.title, item.label),
+      iconUrl: firstText(item.iconUrl, item.imageUrl, item.logoUrl),
     }))
     .filter((item) => item.name)
 
-  return mapped.length ? mapped : null
+  return mapped.length ? fillToDefaultCount(mapped, defaultHonors) : null
 }
 
 async function loadHomeBanner() {
