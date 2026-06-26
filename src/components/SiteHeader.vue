@@ -8,10 +8,12 @@
     <nav class="top-nav">
       <a
         v-for="item in navItems"
-        :key="item.id"
-        :href="`/#${item.id}`"
-        :class="{ active: activeId === item.id }"
-        @click="setActive(item.id)"
+        :key="item.key"
+        :href="item.href"
+        :target="item.target"
+        :rel="item.rel"
+        :class="{ active: activeId === item.activeId }"
+        @click="handleNavClick(item, $event)"
       >{{ item.label }}</a>
     </nav>
   </header>
@@ -19,10 +21,12 @@
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getNavigation, getSiteConfig } from '../api/portal'
 import { navigation as defaultNavigation, siteConfig as defaultSiteConfig } from '../data/site'
 
-const navItems = ref(defaultNavigation.map((item) => ({ ...item })))
+const router = useRouter()
+const navItems = ref([])
 const siteConfig = ref({
   ...defaultSiteConfig,
   seo: { ...defaultSiteConfig.seo },
@@ -42,6 +46,10 @@ function asText(value) {
   return String(value).trim()
 }
 
+function asBoolean(value) {
+  return value === true || value === 1 || value === '1' || asText(value).toLowerCase() === 'true'
+}
+
 function getNavigationSource(data) {
   if (Array.isArray(data)) return data
   if (isRecord(data) && Array.isArray(data.list)) return data.list
@@ -49,14 +57,11 @@ function getNavigationSource(data) {
   return []
 }
 
-function resolveNavId(item, label) {
-  const rawId = asText(item.id || item.menuCode || item.code || item.key)
-  if (rawId) return rawId
+function normalizeAnchor(value) {
+  return asText(value).replace(/^#/, '')
+}
 
-  const rawLink = asText(item.href || item.url || item.path || item.link)
-  const hash = rawLink.match(/#([^#/?]+)/)
-  if (hash?.[1]) return hash[1]
-
+function getFallbackSectionId(item, label) {
   const pathMap = {
     '/products': 'products',
     '/cases': 'cases',
@@ -64,15 +69,87 @@ function resolveNavId(item, label) {
     '/contact': 'contact',
   }
 
-  return pathMap[rawLink] || sectionIdByLabel[label] || ''
+  const rawLink = asText(item.href || item.url || item.path || item.link || item.routePath)
+  const hash = rawLink.match(/#([^#/?]+)/)
+  if (hash?.[1]) return hash[1]
+
+  return normalizeAnchor(item.anchorCode) || pathMap[rawLink] || sectionIdByLabel[label] || asText(item.id || item.menuCode || item.code || item.key)
+}
+
+function normalizeTargetType(value, item) {
+  const targetType = asText(value).toUpperCase()
+  if (targetType) return targetType
+  if (asText(item.externalUrl)) return 'EXTERNAL_LINK'
+  if (normalizeAnchor(item.anchorCode)) return 'PAGE_ANCHOR'
+  if (asText(item.routePath)) return 'INTERNAL_ROUTE'
+  return 'PAGE_ANCHOR'
+}
+
+function getPageAnchorLocation(routePath, anchorCode) {
+  const path = routePath || '/'
+  const hash = anchorCode ? `#${anchorCode}` : ''
+
+  return {
+    href: `${path}${hash}`,
+    routeLocation: { path, hash },
+    activeId: anchorCode,
+  }
+}
+
+function getNavigationDestination(item, label, targetType) {
+  const routePath = asText(item.routePath || item.path || item.url || item.href || item.link)
+  const anchorCode = normalizeAnchor(item.anchorCode)
+  const externalUrl = asText(item.externalUrl || item.url || item.href || item.link)
+  const fallbackSectionId = getFallbackSectionId(item, label)
+
+  if (targetType === 'EXTERNAL_LINK') {
+    const openInNewTab = asBoolean(item.openInNewTab)
+
+    return {
+      href: externalUrl || '#',
+      routeLocation: null,
+      activeId: asText(item.id) || externalUrl || label,
+      target: openInNewTab ? '_blank' : null,
+      rel: openInNewTab ? 'noopener noreferrer' : null,
+    }
+  }
+
+  if (targetType === 'INTERNAL_ROUTE') {
+    return {
+      href: routePath || '/',
+      routeLocation: routePath || '/',
+      activeId: fallbackSectionId,
+      target: null,
+      rel: null,
+    }
+  }
+
+  if (targetType === 'GROUP') {
+    return {
+      href: '#',
+      routeLocation: null,
+      activeId: asText(item.id) || label,
+      target: null,
+      rel: null,
+    }
+  }
+
+  return {
+    ...getPageAnchorLocation(routePath, anchorCode || fallbackSectionId),
+    target: null,
+    rel: null,
+  }
 }
 
 function mapNavigationItem(item) {
   if (!isRecord(item)) return null
 
   const label = asText(item.menuName || item.label || item.name || item.title)
-  const id = resolveNavId(item, label)
-  if (!label || !id) return null
+  if (!label) return null
+
+  const targetType = normalizeTargetType(item.targetType, item)
+  const destination = getNavigationDestination(item, label, targetType)
+  const key = asText(item.id || item.menuCode || item.code || item.key) || `${targetType}:${destination.href}:${label}`
 
   const children = getNavigationSource(item.children)
     .map(mapNavigationItem)
@@ -80,8 +157,10 @@ function mapNavigationItem(item) {
 
   return {
     ...item,
-    id,
+    key,
     label,
+    targetType,
+    ...destination,
     submenu: children,
   }
 }
@@ -94,20 +173,20 @@ function mapNavigation(data) {
   return mapped.length ? mapped : null
 }
 
+navItems.value = mapNavigation(defaultNavigation) || []
+
 function mapSiteConfig(data) {
   if (!isRecord(data)) return null
 
-  const seo = isRecord(data.seo) ? data.seo : {}
-
   return {
-    logo: asText(data.logo || data.logoUrl) || defaultSiteConfig.logo,
+    logo: asText(data.logoLightUrl || data.logoDarkUrl) || defaultSiteConfig.logo,
     logoText: defaultSiteConfig.logoText,
-    name: asText(data.name || data.siteName || data.companyName) || defaultSiteConfig.name,
-    slogan: asText(data.slogan) || defaultSiteConfig.slogan,
+    name: asText(data.siteTitle) || defaultSiteConfig.name,
+    slogan: asText(data.brandSlogan || data.brandTagline) || defaultSiteConfig.slogan,
     seo: {
-      title: asText(seo.title) || defaultSiteConfig.seo.title,
-      description: asText(seo.description) || defaultSiteConfig.seo.description,
-      keywords: asText(seo.keywords),
+      title: asText(data.siteTitle) || defaultSiteConfig.seo.title,
+      description: asText(data.seoDescription) || defaultSiteConfig.seo.description,
+      keywords: asText(data.seoKeywords) || asText(defaultSiteConfig.seo.keywords),
     },
   }
 }
@@ -157,6 +236,19 @@ async function loadSiteConfig() {
   } catch (error) {
     console.error('[Portal API] site-config failed, fallback to site.js', error)
   }
+}
+
+function handleNavClick(item, event) {
+  setActive(item.activeId)
+
+  if (item.targetType === 'EXTERNAL_LINK') return
+
+  event.preventDefault()
+  if (!item.routeLocation) return
+
+  router.push(item.routeLocation).then(() => {
+    nextTick(updateActive)
+  })
 }
 const sectionMap = [
   { sectionId: 'ai', navId: 'ai' },
