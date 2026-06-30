@@ -111,3 +111,111 @@ export const siteConfig = {
     "description": "武汉云台数据成立于2015年，持续深耕企业数字化与智能化建设，服务工业制造、能源、金融、医疗、政务等领域。"
   }
 }
+
+products.forEach((product) => {
+  product.name = product.name ?? product.title ?? ''
+  product.logoUrl = product.logoUrl ?? ''
+  product.subTitle = product.subTitle ?? product.sub ?? ''
+  product.abstractText = product.abstractText ?? product.desc ?? ''
+  product.statusTag = product.statusTag ?? product.status ?? ''
+  product.detailLink = product.detailLink ?? ''
+})
+
+cases.forEach((item) => {
+  item.logoUrl = item.logoUrl ?? item.img ?? ''
+  item.summary = item.summary ?? item.desc ?? ''
+  item.keywords = Array.isArray(item.keywords) ? item.keywords : Array.isArray(item.tags) ? item.tags : []
+})
+
+export const contactInfo = {
+  contactAddress: '武汉 · 中国光谷',
+  businessPhone: '预约洽谈',
+  contactEmail: 'business@yuntaidata.com',
+  address: '武汉 · 中国光谷',
+  phone: '预约洽谈',
+  email: 'business@yuntaidata.com',
+}
+
+export const industrySolutions = [
+  {
+    name: '建材与新材料行业',
+    iconUrl: '',
+    description: '围绕生产、销售、运输与经营分析，构建一体化数字平台能力',
+    customerTags: ['商混业务一体化', '销售结算', '运输协同'],
+  },
+  {
+    name: '能源与工程建设行业',
+    iconUrl: '',
+    description: '面向工程项目与安全运营场景，提升全过程协同与风险识别能力',
+    customerTags: ['安全运营', '预警分析', '工程管理'],
+  },
+  {
+    name: '集团经营管理场景',
+    iconUrl: '',
+    description: '沉淀集团企业内部业务系统，实现数据贯通与协同运营',
+    customerTags: ['ERP一体化', '业务协同', '数据中台'],
+  },
+]
+
+export const cooperationDirectionTags = [
+  { tagText: '企业数字化建设', label: '企业数字化建设' },
+  { tagText: '数据平台建设', label: '数据平台建设' },
+  { tagText: 'AI应用开发', label: 'AI应用开发' },
+  { tagText: 'Agent场景落地', label: 'Agent场景落地' },
+  { tagText: '系统集成与咨询服务', label: '系统集成与咨询服务' },
+]
+
+export const strengthMetrics = [
+  { id: 'clients', metricValue: '50+', value: '50+', label: '服务客户', iconUrl: '' },
+  { id: 'industries', metricValue: '5大领域', value: '5大领域', label: '行业覆盖', iconUrl: '' },
+  { id: 'certifications', metricValue: '10+', value: '10+', label: '资质认证', iconUrl: '' },
+  { id: 'delivery', metricValue: '100%', value: '100%', label: '项目交付', iconUrl: '' },
+]
+
+export const clientLogos = [
+  { id: 'tianshan', name: '天山材料', industry: '', logoUrl: '' },
+  { id: 'cnnc', name: '中国核电', industry: '', logoUrl: '' },
+  { id: 'cjsc', name: '长江证券', industry: '', logoUrl: '' },
+  { id: 'cccc', name: '中国交建', industry: '', logoUrl: '' },
+  { id: 'hubei-tobacco', name: '湖北烟草', industry: '', logoUrl: '' },
+]
+
+export const aiCards = [
+  { id: 'knowledge', name: '企业知识库', title: '企业知识库', englishName: 'Knowledge', en: 'Knowledge', iconUrl: '', description: '沉淀组织经验与业务知识', text: '沉淀组织经验与业务知识', jumpLink: '' },
+  { id: 'assistant', name: 'AI业务助手', title: 'AI业务助手', englishName: 'Assistant', en: 'Assistant', iconUrl: '', description: '辅助日常业务处理与协同', text: '辅助日常业务处理与协同', jumpLink: '' },
+  { id: 'analytics', name: '智能分析', title: '智能分析', englishName: 'Analytics', en: 'Analytics', iconUrl: '', description: '自动生成分析与决策支持', text: '自动生成分析与决策支持', jumpLink: '' },
+  { id: 'agent', name: '企业智能体', title: '企业智能体', englishName: 'Agent', en: 'Agent', iconUrl: '', description: '推动业务流程智能化与自动化', text: '推动业务流程智能化与自动化', jumpLink: '' },
+]
+
+export const capabilities = [
+  {
+    id: 'management',
+    name: '企业经营管理能力',
+    items: [
+      { id: 'erp', name: 'ERP' },
+      { id: 'finance-business', name: '业财一体化' },
+      { id: 'group-control', name: '集团管控' },
+      { id: 'supply-chain', name: '供应链协同' },
+    ],
+  },
+  {
+    id: 'data',
+    name: '数据智能平台能力',
+    items: [
+      { id: 'data-middle-platform', name: '数据中台' },
+      { id: 'data-warehouse', name: '数据仓库' },
+      { id: 'bi', name: 'BI分析' },
+      { id: 'realtime-data', name: '实时数据平台' },
+    ],
+  },
+  {
+    id: 'ai',
+    name: 'AI创新应用能力',
+    items: [
+      { id: 'knowledge-base', name: '企业知识库' },
+      { id: 'qa', name: '智能问答' },
+      { id: 'ai-assistant', name: 'AI助手' },
+      { id: 'agent-platform', name: 'Agent平台' },
+    ],
+  },
+]

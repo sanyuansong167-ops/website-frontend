@@ -40,10 +40,7 @@
         <h2>从数字化到智能化</h2>
         <p class="lead">云台数据正在从系统建设走向智能协同。十余年的行业经验、业务系统和数据资产积累，让AI具备真实落地的基础。</p>
         <div class="ai-cards">
-          <Feature icon="BookOpen" color="orange" en="Knowledge" title="企业知识库" text="沉淀组织经验与业务知识" />
-          <Feature icon="MessageSquare" color="cyan" en="Assistant" title="AI业务助手" text="辅助日常业务处理与协同" />
-          <Feature icon="ChartNoAxesColumn" color="green" en="Analytics" title="智能分析" text="自动生成分析与决策支持" />
-          <Feature icon="Bot" color="purple" en="Agent" title="企业智能体" text="推动业务流程智能化与自动化" />
+          <Feature v-for="(card, index) in aiCards" :key="card.id" :icon="aiCardIcon(card, index)" :color="aiCardColor(index)" :en="card.en" :title="card.title" :text="card.text" />
         </div>
         <div class="center ai-cta"><a class="primary" href="#contact">探索AI智能体解决方案</a></div>
       </div>
@@ -54,15 +51,13 @@
         <SectionTitle tag="产品体系" title="从能力底座到产品矩阵" desc="三层架构覆盖企业数字化全链路，五大产品让每一层能力都可落地" />
         <h3 class="base-title">能力底座</h3>
         <div class="base-cards">
-          <div class="base-card management"><h4>企业经营管理能力</h4><p>帮助大型组织实现集团化、标准化与精细化运营</p><span>ERP</span><span>业财一体化</span><span>集团管控</span><span>供应链协同</span></div>
-          <div class="base-card data"><h4>数据智能平台能力</h4><p>打通多源数据与业务流程，构建统一的数据资产体系</p><span>数据中台</span><span>数据仓库</span><span>BI分析</span><span>实时数据平台</span></div>
-          <div class="base-card ai"><h4>AI创新应用能力</h4><p>推动AI进入真实业务场景</p><span>企业知识库</span><span>智能问答</span><span>AI助手</span><span>Agent平台</span></div>
+          <div v-for="(capability, index) in capabilities" :key="capability.id" :class="['base-card', capabilityClass(index)]"><h4>{{ capability.name }}</h4><p>{{ capabilityDescription(index) }}</p><span v-for="item in capabilityItems(capability)" :key="item.id">{{ item.name }}</span></div>
         </div>
         <h3>产品矩阵</h3>
         <div class="product-grid">
-          <router-link v-for="p in products" :key="p.id" class="product-card" :class="{ soon: p.id === 'agent' }" to="/product">
+          <router-link v-for="(p, index) in products" :key="p.id" class="product-card" :class="{ soon: p.id === 'agent' }" :to="productTarget(p)">
             <span class="status">{{ p.status }}</span>
-            <IconBox :name="p.icon" :color="p.color" />
+            <IconBox :name="productIcon(p, index)" :color="productColor(p, index)" />
             <h4>{{ p.title }}</h4>
             <b>{{ p.sub }}</b>
             <p>{{ p.desc }}</p>
@@ -100,12 +95,12 @@
       <div class="container">
         <SectionTitle tag="产品与行业方案" title="聚焦典型行业场景" desc="推动数字化与智能化价值落地" />
         <div class="case-grid">
-          <router-link v-for="c in cases" :key="c.id" to="/case" class="case-card">
-            <IconBox :name="c.industry.includes('能源') ? 'Zap' : 'Factory'" :color="c.industry.includes('能源') ? 'cyan' : 'orange'" />
+          <router-link v-for="(solution, index) in industrySolutions" :key="solution.name" to="/case" class="case-card">
+            <IconBox :name="industrySolutionIcon(solution, index)" :color="industrySolutionColor(index)" />
             <span class="arrow">→</span>
-            <h3>{{ c.industry }}</h3>
-            <p>{{ c.desc }}</p>
-            <div class="customer"><b>典型客户</b><small>{{ c.title }}</small></div>
+            <h3>{{ solution.name }}</h3>
+            <p>{{ solution.description }}</p>
+            <div class="customer"><b>典型客户</b><small>{{ customerTagsText(solution) }}</small></div>
           </router-link>
         </div>
       </div>
@@ -142,19 +137,12 @@
           <div class="strength-panel clients-panel">
             <h3><span class="panel-icon"><Building2 :size="26" /></span>服务客户</h3>
             <div class="client-grid">
-              <span><i>🏗</i>天山材料</span>
-              <span><i>⚡</i>中国核电</span>
-              <span><i>📊</i>长江证券</span>
-              <span><i>🌉</i>中国交建</span>
-              <span><i>🏭</i>湖北烟草</span>
+              <span v-for="(client, index) in clientLogos" :key="client.id"><img v-if="client.logoUrl && !failedClientLogos[client.id]" :src="client.logoUrl" :alt="client.name" @error="failedClientLogos[client.id] = true"><i v-else>{{ clientLogoFallback(index) }}</i>{{ client.name }}<small v-if="client.industry">{{ client.industry }}</small></span>
             </div>
           </div>
         </div>
         <div class="nums">
-          <b><span class="num-icon"><Users :size="28" /></span>50+<small>服务客户</small></b>
-          <b><span class="num-icon"><Building2 :size="28" /></span>5大领域<small>行业覆盖</small></b>
-          <b><span class="num-icon"><Award :size="28" /></span>10+<small>资质认证</small></b>
-          <b><span class="num-icon"><Trophy :size="28" /></span>100%<small>项目交付</small></b>
+          <b v-for="(metric, index) in strengthMetrics" :key="metric.id"><span class="num-icon"><component :is="strengthMetricIcon(index)" :size="28" /></span>{{ metric.value }}<small>{{ metric.label }}</small></b>
         </div>
       </div>
     </section>
@@ -176,15 +164,16 @@
         <SectionTitle tag="联系我们" title="期待与您共同探索未来" desc="无论您正在规划数字化转型、建设数据平台，还是探索人工智能应用落地" />
         <div class="contact-grid">
           <div>
-            <div class="contact-card"><h3>联系方式</h3><p><b>地址</b><br>武汉 · 中国光谷</p><p><b>商务咨询</b><br>预约洽谈</p><p><b>邮箱联系</b><br>business@yuntaidata.com</p></div>
-            <div class="blue-box"><h3>合作方向</h3><span>企业数字化建设</span><span>数据平台建设</span><span>AI应用开发</span><span>Agent场景落地</span><span>系统集成与咨询服务</span></div>
+            <div class="contact-card"><h3>联系方式</h3><p v-if="contactInfo.address"><b>地址</b><br>{{ contactInfo.address }}</p><p v-if="contactInfo.phone"><b>商务咨询</b><br>{{ contactInfo.phone }}</p><p v-if="contactInfo.email"><b>邮箱联系</b><br>{{ contactInfo.email }}</p></div>
+            <div class="blue-box"><h3>合作方向</h3><span v-for="tag in cooperationDirectionTags" :key="tag.label">{{ tag.label }}</span></div>
           </div>
-          <form class="form">
+          <form class="form" @submit.prevent="handleLeadSubmit">
             <h3>预约交流</h3>
-            <div class="form-row"><label>姓名 *<input placeholder="您的姓名" /></label><label>公司 *<input placeholder="公司名称" /></label></div>
-            <div class="form-row"><label>邮箱 *<input placeholder="your@email.com" /></label><label>电话<input placeholder="联系电话" /></label></div>
-            <label>需求描述<textarea placeholder="请简要描述您的需求..."></textarea></label>
-            <button type="button" class="primary full">提交预约</button>
+            <div class="form-row"><label>姓名 *<input v-model="leadForm.contactName" placeholder="您的姓名" /></label><label>公司 *<input v-model="leadForm.companyName" placeholder="公司名称" /></label></div>
+            <div class="form-row"><label>邮箱 *<input v-model="leadForm.email" placeholder="your@email.com" /></label><label>电话<input v-model="leadForm.phone" placeholder="联系电话" /></label></div>
+            <label>需求描述<textarea v-model="leadForm.demandContent" placeholder="请简要描述您的需求..."></textarea></label>
+            <button type="submit" class="primary full" :disabled="submitting">{{ submitting ? '提交中...' : '提交预约' }}</button>
+            <p v-if="leadMessage">{{ leadMessage }}</p>
           </form>
         </div>
       </div>
@@ -199,14 +188,76 @@ import FooterSection from '../components/FooterSection.vue'
 import SectionTitle from '../components/SectionTitle.vue'
 import IconBox from '../components/IconBox.vue'
 import Feature from '../components/Feature.vue'
-import { products, cases, timeline, hero as defaultHero, metrics as defaultMetrics, honors as defaultHonors } from '../data/site'
+import {
+  products as defaultProducts,
+  timeline,
+  hero as defaultHero,
+  metrics as defaultMetrics,
+  honors as defaultHonors,
+  industrySolutions as defaultIndustrySolutions,
+  contactInfo as defaultContactInfo,
+  cooperationDirectionTags as defaultCooperationDirectionTags,
+  aiCards as defaultAiCards,
+  capabilities as defaultCapabilities,
+  clientLogos as defaultClientLogos,
+  strengthMetrics as defaultStrengthMetrics,
+} from '../data/site'
 import { computed, onMounted, ref } from 'vue'
 import { ArrowRight, Award, BarChart3, Bot, BrainCircuit, Building2, CalendarDays, Check, ClipboardList, BookOpen, GraduationCap, Landmark, Lightbulb, Trophy, Users, Zap } from 'lucide-vue-next'
-import { getHomeBanner, getHomeMetrics, getHonors } from '../api/portal'
+import {
+  getHomeBanner,
+  getHomeMetrics,
+  getHonors,
+  getPortalAiCards,
+  getPortalCapabilities,
+  getPortalClientLogos,
+  getPortalContactInfo,
+  getPortalCooperationDirectionTags,
+  getPortalIndustrySolutions,
+  getPortalProducts,
+  getPortalStrengthMetrics,
+  submitPortalLead,
+} from '../api/portal'
 
 const hero = ref({ ...defaultHero })
 const metrics = ref([...defaultMetrics])
 const honors = ref([...defaultHonors])
+const products = ref<any[]>([...defaultProducts])
+const industrySolutions = ref<any[]>([...defaultIndustrySolutions])
+const contactInfo = ref({ ...defaultContactInfo })
+const cooperationDirectionTags = ref<any[]>([...defaultCooperationDirectionTags])
+const aiCards = ref<any[]>([...defaultAiCards])
+const capabilities = ref<any[]>([...defaultCapabilities])
+const clientLogos = ref<any[]>([...defaultClientLogos])
+const strengthMetrics = ref<any[]>([...defaultStrengthMetrics])
+const failedClientLogos = ref<Record<string, boolean>>({})
+const submitting = ref(false)
+const leadMessage = ref('')
+const leadForm = ref({
+  contactName: '',
+  companyName: '',
+  email: '',
+  phone: '',
+  demandContent: '',
+})
+
+const productDisplayMeta = defaultProducts.map((product) => ({
+  id: product.id,
+  icon: product.icon,
+  color: product.color,
+}))
+const fallbackIndustryIcons = ['Factory', 'Zap', 'Building2', 'Database']
+const fallbackIndustryColors = ['orange', 'cyan', 'blue', 'green']
+const fallbackAiIcons = ['BookOpen', 'MessageSquare', 'ChartNoAxesColumn', 'Bot']
+const fallbackAiColors = ['orange', 'cyan', 'green', 'purple']
+const capabilityClasses = ['management', 'data', 'ai']
+const capabilityDescriptions = [
+  '帮助大型组织实现集团化、标准化与精细化运营',
+  '打通多源数据与业务流程，构建统一的数据资产体系',
+  '推动AI进入真实业务场景',
+]
+const clientLogoFallbacks = ['🏗', '⚡', '📊', '🌉', '🏭']
+const strengthMetricIcons = [Users, Building2, Award, Trophy]
 
 const heroBackgroundStyle = computed(() => {
   if (!hero.value.backgroundImage) return {}
@@ -285,6 +336,100 @@ function mapHonors(data: unknown) {
   return mapped.length ? fillToDefaultCount(mapped, defaultHonors) : null
 }
 
+function findProductMeta(product: { id?: unknown }, index: number) {
+  return productDisplayMeta.find((item) => item.id === product.id) || productDisplayMeta[index] || productDisplayMeta[0]
+}
+
+function productIcon(product: { id?: unknown }, index: number) {
+  return findProductMeta(product, index)?.icon || 'Box'
+}
+
+function productColor(product: { id?: unknown }, index: number) {
+  return findProductMeta(product, index)?.color || 'blue'
+}
+
+function productTarget(product: { detailLink?: unknown }) {
+  return firstText(product.detailLink) || '/product'
+}
+
+function industrySolutionIcon(solution: { iconUrl?: unknown }, index: number) {
+  const iconUrl = firstText(solution.iconUrl)
+
+  return iconUrl && !iconUrl.includes('/') ? iconUrl : fallbackIndustryIcons[index % fallbackIndustryIcons.length]
+}
+
+function industrySolutionColor(index: number) {
+  return fallbackIndustryColors[index % fallbackIndustryColors.length]
+}
+
+function customerTagsText(solution: { customerTags?: unknown }) {
+  return Array.isArray(solution.customerTags) && solution.customerTags.length
+    ? solution.customerTags.map(asText).filter(Boolean).join(' / ')
+    : ''
+}
+
+function aiCardIcon(card: { iconUrl?: unknown }, index: number) {
+  const iconUrl = firstText(card.iconUrl)
+
+  return iconUrl && !iconUrl.includes('/') ? iconUrl : fallbackAiIcons[index % fallbackAiIcons.length]
+}
+
+function aiCardColor(index: number) {
+  return fallbackAiColors[index % fallbackAiColors.length]
+}
+
+function capabilityClass(index: number) {
+  return capabilityClasses[index % capabilityClasses.length]
+}
+
+function capabilityDescription(index: number) {
+  return capabilityDescriptions[index % capabilityDescriptions.length]
+}
+
+function capabilityItems(capability: { items?: unknown }) {
+  return Array.isArray(capability.items) ? capability.items : []
+}
+
+function clientLogoFallback(index: number) {
+  return clientLogoFallbacks[index % clientLogoFallbacks.length]
+}
+
+function strengthMetricIcon(index: number) {
+  return strengthMetricIcons[index % strengthMetricIcons.length]
+}
+
+function resetLeadForm() {
+  leadForm.value = {
+    contactName: '',
+    companyName: '',
+    email: '',
+    phone: '',
+    demandContent: '',
+  }
+}
+
+function validateLeadForm() {
+  const form = leadForm.value
+  const contactName = form.contactName.trim()
+  const companyName = form.companyName.trim()
+  const email = form.email.trim()
+  const phone = form.phone.trim()
+  const demandContent = form.demandContent.trim()
+
+  if (!contactName) return '请填写姓名'
+  if (contactName.length > 64) return '姓名不能超过64个字符'
+  if (!companyName) return '请填写公司名称'
+  if (companyName.length > 128) return '公司名称不能超过128个字符'
+  if (!email) return '请填写邮箱'
+  if (email.length > 128) return '邮箱不能超过128个字符'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '请填写正确的邮箱'
+  if (phone && phone.length > 64) return '联系电话不能超过64个字符'
+  if (phone && !/^[0-9+\-()\s]+$/.test(phone)) return '联系电话格式不正确'
+  if (demandContent && demandContent.length > 1000) return '需求描述不能超过1000个字符'
+
+  return ''
+}
+
 async function loadHomeBanner() {
   try {
     const data = await getHomeBanner()
@@ -315,8 +460,119 @@ async function loadHonors() {
   }
 }
 
+async function loadProducts() {
+  try {
+    const data = await getPortalProducts()
+    if (Array.isArray(data)) products.value = data
+  } catch (error) {
+    console.error('[Portal API] products failed, fallback to site.js', error)
+    products.value = [...defaultProducts]
+  }
+}
+
+async function loadIndustrySolutions() {
+  try {
+    const data = await getPortalIndustrySolutions()
+    if (Array.isArray(data)) industrySolutions.value = data
+  } catch (error) {
+    console.error('[Portal API] industry-solutions failed, fallback to site.js', error)
+    industrySolutions.value = [...defaultIndustrySolutions]
+  }
+}
+
+async function loadContactInfo() {
+  try {
+    contactInfo.value = await getPortalContactInfo()
+  } catch (error) {
+    console.error('[Portal API] contact-info failed, fallback to site.js', error)
+    contactInfo.value = { ...defaultContactInfo }
+  }
+}
+
+async function loadCooperationDirectionTags() {
+  try {
+    const data = await getPortalCooperationDirectionTags()
+    if (Array.isArray(data)) cooperationDirectionTags.value = data
+  } catch (error) {
+    console.error('[Portal API] cooperation-direction-tags failed, fallback to site.js', error)
+    cooperationDirectionTags.value = [...defaultCooperationDirectionTags]
+  }
+}
+
+async function loadAiCards() {
+  try {
+    const data = await getPortalAiCards()
+    if (Array.isArray(data)) aiCards.value = data
+  } catch (error) {
+    console.error('[Portal API] ai-cards failed, fallback to site.js', error)
+    aiCards.value = [...defaultAiCards]
+  }
+}
+
+async function loadCapabilities() {
+  try {
+    const data = await getPortalCapabilities()
+    if (Array.isArray(data)) capabilities.value = data
+  } catch (error) {
+    console.error('[Portal API] capabilities failed, fallback to site.js', error)
+    capabilities.value = [...defaultCapabilities]
+  }
+}
+
+async function loadClientLogos() {
+  try {
+    const data = await getPortalClientLogos()
+    if (Array.isArray(data)) clientLogos.value = data
+  } catch (error) {
+    console.error('[Portal API] client-logos failed, fallback to site.js', error)
+    clientLogos.value = [...defaultClientLogos]
+  }
+}
+
+async function loadStrengthMetrics() {
+  try {
+    const data = await getPortalStrengthMetrics()
+    if (Array.isArray(data)) strengthMetrics.value = data
+  } catch (error) {
+    console.error('[Portal API] strength-metrics failed, fallback to site.js', error)
+    strengthMetrics.value = [...defaultStrengthMetrics]
+  }
+}
+
+async function handleLeadSubmit() {
+  if (submitting.value) return
+
+  const validationMessage = validateLeadForm()
+  if (validationMessage) {
+    leadMessage.value = validationMessage
+    return
+  }
+
+  submitting.value = true
+  leadMessage.value = ''
+
+  try {
+    await submitPortalLead(leadForm.value)
+    leadMessage.value = '提交成功，我们会尽快与您联系'
+    resetLeadForm()
+  } catch (error) {
+    console.error('[Portal API] leads failed', error)
+    leadMessage.value = '提交失败，请稍后重试'
+  } finally {
+    submitting.value = false
+  }
+}
+
 onMounted(() => {
   loadHomeBanner()
   loadHomeMetrics()
   loadHonors()
+  loadProducts()
+  loadIndustrySolutions()
+  loadContactInfo()
+  loadCooperationDirectionTags()
+  loadAiCards()
+  loadCapabilities()
+  loadClientLogos()
+  loadStrengthMetrics()
 })</script>
