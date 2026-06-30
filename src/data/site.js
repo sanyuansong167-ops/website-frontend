@@ -219,3 +219,80 @@ export const capabilities = [
     ],
   },
 ]
+
+export const partnerUniversities = [
+  { name: 'HUST', fullName: '华中科技大学', logoUrl: '' },
+  { name: 'WHU', fullName: '武汉大学', logoUrl: '' },
+  { name: 'SCUEC', fullName: '中南民族大学', logoUrl: '' },
+]
+
+export const timelineEvents = timeline.map(([year, title, description]) => ({
+  year,
+  title,
+  description,
+}))
+
+export const researchDirections = [
+  {
+    titleCn: '数据智能',
+    title: '数据智能',
+    titleEn: 'Data Intelligence',
+    en: 'Data Intelligence',
+    summary: '围绕企业数据资产化与智能分析能力建设',
+    iconUrl: '',
+  },
+  {
+    titleCn: '知识工程',
+    title: '知识工程',
+    titleEn: 'Knowledge Engineering',
+    en: 'Knowledge Engineering',
+    summary: '沉淀组织知识，构建可复用的知识体系',
+    iconUrl: '',
+  },
+  {
+    titleCn: 'Agent 研发',
+    title: 'Agent 研发',
+    titleEn: 'AI Agent',
+    en: 'AI Agent',
+    summary: '推进企业级智能体平台与场景应用研发',
+    iconUrl: '',
+  },
+  {
+    titleCn: '智能决策',
+    title: '智能决策',
+    titleEn: 'Decision Intelligence',
+    en: 'Decision Intelligence',
+    summary: '探索数据驱动的分析、预警与决策支持能力',
+    iconUrl: '',
+  },
+]
+
+export const valueCards = [
+  {
+    iconUrl: '',
+    title: '同事',
+    subtitle: '相知相惜，并肩精进',
+    description: '相互尊重、相互支持，在协作中不断成长',
+  },
+  {
+    iconUrl: '',
+    title: '同仁',
+    subtitle: '协同合作，共创价值',
+    description: '与客户、伙伴携手同行，以专业能力创造共赢价值',
+  },
+  {
+    iconUrl: '',
+    title: '同享',
+    subtitle: '同享收益，共担沉浮',
+    description: '分享成功的喜悦，共同面对挑战，建立长期信任',
+  },
+]
+
+export const ourPromises = {
+  content: '用更过硬的技术、更简便的操作、更实用的功能，回报每一位客户的关心、支持与信任。',
+  tags: [
+    { tagText: '过硬的技术', label: '过硬的技术' },
+    { tagText: '简便的操作', label: '简便的操作' },
+    { tagText: '实用的功能', label: '实用的功能' },
+  ],
+}

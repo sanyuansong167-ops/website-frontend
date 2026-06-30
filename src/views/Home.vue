@@ -76,17 +76,16 @@
         </div>
         <h3 class="innovation-heading"><GraduationCap :size="34" />产学研合作</h3>
         <div class="school-row innovation-schools">
-          <div><span>HUST</span><b>华中科技大学</b></div>
-          <div><span>WHU</span><b>武汉大学</b></div>
-          <div><span>SCUEC</span><b>中南民族大学</b></div>
+          <div v-for="school in partnerUniversities" :key="school.name">
+            <img v-if="school.logoUrl && !failedUniversityLogos[school.name]" :src="school.logoUrl" :alt="school.fullName || school.name" @error="failedUniversityLogos[school.name] = true">
+            <span v-else>{{ school.name }}</span>
+            <b v-if="school.fullName">{{ school.fullName }}</b>
+          </div>
         </div>
         <p class="innovation-note">围绕人工智能、数据治理、行业数字化与智能体应用开展联合研究与成果转化</p>
         <h3 class="innovation-subtitle">重点研发方向</h3>
         <div class="research-grid">
-          <div class="research-card"><span class="research-icon"><BrainCircuit :size="34" /></span><small>Data Intelligence</small><h4>数据智能</h4><p>围绕企业数据资产化与智能分析能力建设</p></div>
-          <div class="research-card"><span class="research-icon"><BookOpen :size="34" /></span><small>Knowledge Engineering</small><h4>知识工程</h4><p>沉淀组织知识，构建可复用的知识体系</p></div>
-          <div class="research-card"><span class="research-icon"><Bot :size="34" /></span><small>AI Agent</small><h4>Agent 研发</h4><p>推进企业级智能体平台与场景应用研发</p></div>
-          <div class="research-card"><span class="research-icon"><Lightbulb :size="34" /></span><small>Decision Intelligence</small><h4>智能决策</h4><p>探索数据驱动的分析、预警与决策支持能力</p></div>
+          <div v-for="(direction, index) in researchDirections" :key="direction.title" class="research-card"><span class="research-icon"><img v-if="direction.iconUrl && !failedResearchIcons[direction.title]" :src="direction.iconUrl" :alt="direction.title" @error="failedResearchIcons[direction.title] = true"><component v-else :is="researchDirectionIcon(index)" :size="34" /></span><small v-if="direction.en">{{ direction.en }}</small><h4>{{ direction.title }}</h4><p>{{ direction.summary }}</p></div>
         </div>
       </div>
     </section>
@@ -151,11 +150,9 @@
       <div class="container">
         <SectionTitle tag="关于我们" title="核心价值观" />
         <div class="values">
-          <div><IconBox name="Users" /><h3>同事</h3><b>相知相惜，并肩精进</b><p>相互尊重、相互支持，在协作中不断成长</p></div>
-          <div><IconBox name="Handshake" /><h3>同仁</h3><b>协同合作，共创价值</b><p>与客户、伙伴携手同行，以专业能力创造共赢价值</p></div>
-          <div><IconBox name="Heart" /><h3>同享</h3><b>同享收益，共担沉浮</b><p>分享成功的喜悦，共同面对挑战，建立长期信任</p></div>
+          <div v-for="(card, index) in valueCards" :key="card.title"><img v-if="card.iconUrl && !failedValueIcons[card.title]" :src="card.iconUrl" :alt="card.title" @error="failedValueIcons[card.title] = true"><IconBox v-else :name="valueCardIcon(index)" /><h3>{{ card.title }}</h3><b v-if="card.subtitle">{{ card.subtitle }}</b><p>{{ card.description }}</p></div>
         </div>
-        <div class="promise"><h3>我们的承诺</h3><p>用更过硬的技术、更简便的操作、更实用的功能，回报每一位客户的关心、支持与信任。</p><span>过硬的技术</span><span>简便的操作</span><span>实用的功能</span></div>
+        <div class="promise"><h3>我们的承诺</h3><p v-if="ourPromises.content">{{ ourPromises.content }}</p><span v-for="tag in promiseTags" :key="tag.label">{{ tag.label }}</span></div>
       </div>
     </section>
 
@@ -190,7 +187,7 @@ import IconBox from '../components/IconBox.vue'
 import Feature from '../components/Feature.vue'
 import {
   products as defaultProducts,
-  timeline,
+  timeline as defaultTimeline,
   hero as defaultHero,
   metrics as defaultMetrics,
   honors as defaultHonors,
@@ -201,6 +198,11 @@ import {
   capabilities as defaultCapabilities,
   clientLogos as defaultClientLogos,
   strengthMetrics as defaultStrengthMetrics,
+  partnerUniversities as defaultPartnerUniversities,
+  timelineEvents as defaultTimelineEvents,
+  researchDirections as defaultResearchDirections,
+  valueCards as defaultValueCards,
+  ourPromises as defaultOurPromises,
 } from '../data/site'
 import { computed, onMounted, ref } from 'vue'
 import { ArrowRight, Award, BarChart3, Bot, BrainCircuit, Building2, CalendarDays, Check, ClipboardList, BookOpen, GraduationCap, Landmark, Lightbulb, Trophy, Users, Zap } from 'lucide-vue-next'
@@ -214,8 +216,13 @@ import {
   getPortalContactInfo,
   getPortalCooperationDirectionTags,
   getPortalIndustrySolutions,
+  getPortalOurPromises,
+  getPortalPartnerUniversities,
   getPortalProducts,
+  getPortalResearchDirections,
   getPortalStrengthMetrics,
+  getPortalTimelineEvents,
+  getPortalValueCards,
   submitPortalLead,
 } from '../api/portal'
 
@@ -230,7 +237,18 @@ const aiCards = ref<any[]>([...defaultAiCards])
 const capabilities = ref<any[]>([...defaultCapabilities])
 const clientLogos = ref<any[]>([...defaultClientLogos])
 const strengthMetrics = ref<any[]>([...defaultStrengthMetrics])
+const partnerUniversities = ref<any[]>([...defaultPartnerUniversities])
+const timeline = ref<any[]>(defaultTimeline.map((item) => [...item]))
+const researchDirections = ref<any[]>([...defaultResearchDirections])
+const valueCards = ref<any[]>([...defaultValueCards])
+const ourPromises = ref({
+  content: defaultOurPromises.content,
+  tags: [...defaultOurPromises.tags],
+})
 const failedClientLogos = ref<Record<string, boolean>>({})
+const failedUniversityLogos = ref<Record<string, boolean>>({})
+const failedResearchIcons = ref<Record<string, boolean>>({})
+const failedValueIcons = ref<Record<string, boolean>>({})
 const submitting = ref(false)
 const leadMessage = ref('')
 const leadForm = ref({
@@ -258,6 +276,8 @@ const capabilityDescriptions = [
 ]
 const clientLogoFallbacks = ['🏗', '⚡', '📊', '🌉', '🏭']
 const strengthMetricIcons = [Users, Building2, Award, Trophy]
+const researchDirectionIcons = [BrainCircuit, BookOpen, Bot, Lightbulb]
+const valueCardIcons = ['Users', 'Handshake', 'Heart']
 
 const heroBackgroundStyle = computed(() => {
   if (!hero.value.backgroundImage) return {}
@@ -397,6 +417,43 @@ function clientLogoFallback(index: number) {
 function strengthMetricIcon(index: number) {
   return strengthMetricIcons[index % strengthMetricIcons.length]
 }
+
+function researchDirectionIcon(index: number) {
+  return researchDirectionIcons[index % researchDirectionIcons.length]
+}
+
+function valueCardIcon(index: number) {
+  return valueCardIcons[index % valueCardIcons.length]
+}
+
+function mapTimelineRows(data: unknown) {
+  if (!Array.isArray(data)) return []
+
+  return data.map((item) => {
+    if (Array.isArray(item)) return [asText(item[0]), asText(item[1]), asText(item[2])]
+    if (!isRecord(item)) return ['', '', '']
+
+    return [asText(item.year), asText(item.title), asText(item.description)]
+  })
+}
+
+function normalizePromiseTags(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .filter(isRecord)
+    .map((tag) => {
+      const label = firstText(tag.label, tag.tagText)
+
+      return {
+        tagText: label,
+        label,
+      }
+    })
+    .filter((tag) => tag.label)
+}
+
+const promiseTags = computed(() => normalizePromiseTags(ourPromises.value.tags))
 
 function resetLeadForm() {
   leadForm.value = {
@@ -539,6 +596,64 @@ async function loadStrengthMetrics() {
   }
 }
 
+async function loadPartnerUniversities() {
+  try {
+    const data = await getPortalPartnerUniversities()
+    if (Array.isArray(data)) partnerUniversities.value = data
+  } catch (error) {
+    console.error('[Portal API] partner-universities failed, fallback to site.js', error)
+    partnerUniversities.value = [...defaultPartnerUniversities]
+  }
+}
+
+async function loadTimelineEvents() {
+  try {
+    const data = await getPortalTimelineEvents()
+    if (Array.isArray(data)) timeline.value = mapTimelineRows(data)
+  } catch (error) {
+    console.error('[Portal API] timeline-events failed, fallback to site.js', error)
+    timeline.value = mapTimelineRows(defaultTimelineEvents)
+  }
+}
+
+async function loadResearchDirections() {
+  try {
+    const data = await getPortalResearchDirections()
+    if (Array.isArray(data)) researchDirections.value = data
+  } catch (error) {
+    console.error('[Portal API] research-directions failed, fallback to site.js', error)
+    researchDirections.value = [...defaultResearchDirections]
+  }
+}
+
+async function loadValueCards() {
+  try {
+    const data = await getPortalValueCards()
+    if (Array.isArray(data)) valueCards.value = data
+  } catch (error) {
+    console.error('[Portal API] value-cards failed, fallback to site.js', error)
+    valueCards.value = [...defaultValueCards]
+  }
+}
+
+async function loadOurPromises() {
+  try {
+    const data = await getPortalOurPromises()
+    if (isRecord(data)) {
+      ourPromises.value = {
+        content: asText(data.content),
+        tags: normalizePromiseTags(data.tags),
+      }
+    }
+  } catch (error) {
+    console.error('[Portal API] our-promises failed, fallback to site.js', error)
+    ourPromises.value = {
+      content: defaultOurPromises.content,
+      tags: [...defaultOurPromises.tags],
+    }
+  }
+}
+
 async function handleLeadSubmit() {
   if (submitting.value) return
 
@@ -575,4 +690,9 @@ onMounted(() => {
   loadCapabilities()
   loadClientLogos()
   loadStrengthMetrics()
+  loadPartnerUniversities()
+  loadTimelineEvents()
+  loadResearchDirections()
+  loadValueCards()
+  loadOurPromises()
 })</script>

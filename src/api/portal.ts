@@ -7,8 +7,13 @@ import {
   capabilities,
   clientLogos,
   industrySolutions,
+  ourPromises,
+  partnerUniversities,
   products,
+  researchDirections,
   strengthMetrics,
+  timelineEvents,
+  valueCards,
 } from '../data/site'
 
 type PortalProductResponse = {
@@ -165,6 +170,75 @@ type PortalCapability = {
     id: string | number
     name: string
   }[]
+}
+
+type PortalPartnerUniversityResponse = {
+  name?: unknown
+  fullName?: unknown
+  logoUrl?: unknown
+}
+
+type PortalPartnerUniversity = {
+  name: string
+  fullName: string
+  logoUrl: string
+}
+
+type PortalTimelineEventResponse = {
+  year?: unknown
+  title?: unknown
+  description?: unknown
+}
+
+type PortalTimelineEvent = {
+  year: string
+  title: string
+  description: string
+}
+
+type PortalResearchDirectionResponse = {
+  titleCn?: unknown
+  titleEn?: unknown
+  summary?: unknown
+  iconUrl?: unknown
+  title?: unknown
+  en?: unknown
+}
+
+type PortalResearchDirection = {
+  title: string
+  en: string
+  summary: string
+  iconUrl: string
+}
+
+type PortalValueCardResponse = {
+  iconUrl?: unknown
+  title?: unknown
+  subtitle?: unknown
+  description?: unknown
+}
+
+type PortalValueCard = {
+  iconUrl: string
+  title: string
+  subtitle: string
+  description: string
+}
+
+type PortalPromiseTag = {
+  tagText: string
+  label: string
+}
+
+type PortalOurPromisesResponse = {
+  content?: unknown
+  tags?: unknown
+}
+
+type PortalOurPromises = {
+  content: string
+  tags: PortalPromiseTag[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -427,6 +501,87 @@ function mapPortalCapabilities(data: unknown) {
   )
 }
 
+function mapPortalPartnerUniversity(item: PortalPartnerUniversityResponse): PortalPartnerUniversity {
+  return {
+    name: asString(item.name),
+    fullName: asString(item.fullName),
+    logoUrl: asString(item.logoUrl),
+  }
+}
+
+function mapPortalPartnerUniversities(data: unknown) {
+  return assertArray(data, 'getPortalPartnerUniversities', '/portal/api/partner-universities').map((item) =>
+    mapPortalPartnerUniversity(isRecord(item) ? item : {}),
+  )
+}
+
+function mapPortalTimelineEvent(item: PortalTimelineEventResponse): PortalTimelineEvent {
+  return {
+    year: asString(item.year),
+    title: asString(item.title),
+    description: asString(item.description),
+  }
+}
+
+function mapPortalTimelineEvents(data: unknown) {
+  return assertArray(data, 'getPortalTimelineEvents', '/portal/api/timeline-events').map((item) =>
+    mapPortalTimelineEvent(isRecord(item) ? item : {}),
+  )
+}
+
+function mapPortalResearchDirection(item: PortalResearchDirectionResponse): PortalResearchDirection {
+  return {
+    title: asString(item.titleCn ?? item.title),
+    en: asString(item.titleEn ?? item.en),
+    summary: asString(item.summary),
+    iconUrl: asString(item.iconUrl),
+  }
+}
+
+function mapPortalResearchDirections(data: unknown) {
+  return assertArray(data, 'getPortalResearchDirections', '/portal/api/research-directions').map((item) =>
+    mapPortalResearchDirection(isRecord(item) ? item : {}),
+  )
+}
+
+function mapPortalValueCard(item: PortalValueCardResponse): PortalValueCard {
+  return {
+    iconUrl: asString(item.iconUrl),
+    title: asString(item.title),
+    subtitle: asString(item.subtitle),
+    description: asString(item.description),
+  }
+}
+
+function mapPortalValueCards(data: unknown) {
+  return assertArray(data, 'getPortalValueCards', '/portal/api/value-cards').map((item) =>
+    mapPortalValueCard(isRecord(item) ? item : {}),
+  )
+}
+
+function mapPortalPromiseTags(value: unknown): PortalPromiseTag[] {
+  if (!Array.isArray(value)) return []
+
+  return value.map((tag) => {
+    const item = isRecord(tag) ? tag : {}
+    const tagText = asString(item.tagText ?? item.label)
+
+    return {
+      tagText,
+      label: tagText,
+    }
+  })
+}
+
+function mapPortalOurPromises(data: unknown): PortalOurPromises {
+  const item = isRecord(data) ? data : {}
+
+  return {
+    content: asString(item.content),
+    tags: mapPortalPromiseTags(item.tags),
+  }
+}
+
 export function getSiteConfig() {
   return getPortal('/portal/api/site/config')
 }
@@ -506,6 +661,41 @@ export function getPortalCapabilities() {
     mapPortalCapabilities,
     capabilities,
   )
+}
+
+export function getPortalPartnerUniversities() {
+  return getPortalWithMock(
+    'getPortalPartnerUniversities',
+    '/portal/api/partner-universities',
+    mapPortalPartnerUniversities,
+    partnerUniversities,
+  )
+}
+
+export function getPortalTimelineEvents() {
+  return getPortalWithMock(
+    'getPortalTimelineEvents',
+    '/portal/api/timeline-events',
+    mapPortalTimelineEvents,
+    timelineEvents,
+  )
+}
+
+export function getPortalResearchDirections() {
+  return getPortalWithMock(
+    'getPortalResearchDirections',
+    '/portal/api/research-directions',
+    mapPortalResearchDirections,
+    researchDirections,
+  )
+}
+
+export function getPortalValueCards() {
+  return getPortalWithMock('getPortalValueCards', '/portal/api/value-cards', mapPortalValueCards, valueCards)
+}
+
+export function getPortalOurPromises() {
+  return getPortalWithMock('getPortalOurPromises', '/portal/api/our-promises', mapPortalOurPromises, ourPromises)
 }
 
 export function submitPortalLead(payload: PortalLeadPayload) {
