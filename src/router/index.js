@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import ProductDetail from '../views/ProductDetail.vue'
 import CaseDetail from '../views/CaseDetail.vue'
+import adminRoutes from '../admin/router/adminRoutes'
 
 export default createRouter({
   history: createWebHistory(),
@@ -13,6 +14,7 @@ export default createRouter({
     { path: '/cases', redirect: '/#cases' },
     { path: '/case', name: 'case-detail', component: CaseDetail },
     { path: '/case/:id', redirect: '/case' },
+    ...adminRoutes,
   ],
   scrollBehavior(to) {
     if (to.hash) return { el: to.hash, top: 88, behavior: 'smooth' }
