@@ -51,7 +51,7 @@ function caseTagSummary(item) {
 async function loadCases() {
   try {
     const data = await getPortalCases()
-    if (Array.isArray(data)) cases.value = data
+    if (Array.isArray(data) && data.length > 0) cases.value = data
   } catch (error) {
     console.error('[Portal API] cases failed, fallback to site.js', error)
     cases.value = [...defaultCases]

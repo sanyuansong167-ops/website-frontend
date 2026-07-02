@@ -65,7 +65,7 @@ function productFeatures(product, index) {
 async function loadProducts() {
   try {
     const data = await getPortalProducts()
-    if (Array.isArray(data)) products.value = data
+    if (Array.isArray(data) && data.length > 0) products.value = data
   } catch (error) {
     console.error('[Portal API] products failed, fallback to site.js', error)
     products.value = [...defaultProducts]
