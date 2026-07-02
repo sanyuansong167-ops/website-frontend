@@ -1,65 +1,14 @@
-import { h } from 'vue'
 import AdminLogin from '../pages/AdminLogin.vue'
-import { adminLogout, clearAdminCsrf, getAdminMe } from '../api/adminAuth'
-
-const AdminAuthHome = {
-  name: 'AdminAuthHome',
-  data() {
-    return {
-      currentUser: null,
-      loggingOut: false,
-      errorMessage: '',
-    }
-  },
-  async mounted() {
-    try {
-      this.currentUser = await getAdminMe()
-    } catch (error) {
-      this.errorMessage = error?.message || '登录状态校验失败'
-    }
-  },
-  methods: {
-    async handleLogout() {
-      this.loggingOut = true
-      this.errorMessage = ''
-
-      try {
-        await adminLogout()
-      } catch (error) {
-        this.errorMessage = error?.message || '退出登录失败'
-      } finally {
-        clearAdminCsrf()
-        this.loggingOut = false
-        this.$router.replace('/admin/login')
-      }
-    },
-  },
-  render() {
-    return h('main', { class: 'admin-auth-home' }, [
-      h('section', { class: 'admin-auth-home__panel' }, [
-        h('p', { class: 'admin-auth-home__eyebrow' }, '武汉云台官网后台'),
-        h('h1', '后台认证已通过'),
-        h(
-          'p',
-          { class: 'admin-auth-home__meta' },
-          this.currentUser
-            ? `${this.currentUser.displayName || this.currentUser.username} · ${this.currentUser.roleCode || 'ADMIN'}`
-            : '正在读取当前用户...',
-        ),
-        this.errorMessage ? h('p', { class: 'admin-auth-home__error' }, this.errorMessage) : null,
-        h(
-          'button',
-          {
-            class: 'admin-auth-home__button',
-            disabled: this.loggingOut,
-            onClick: this.handleLogout,
-          },
-          this.loggingOut ? '退出中...' : '退出登录',
-        ),
-      ]),
-    ])
-  },
-}
+import AdminLayout from '../layout/AdminLayout.vue'
+import AdminDashboard from '../pages/AdminDashboard.vue'
+import MediaManage from '../pages/MediaManage.vue'
+import SiteConfigManage from '../pages/SiteConfigManage.vue'
+import HomeBannerManage from '../pages/HomeBannerManage.vue'
+import ProductManage from '../pages/ProductManage.vue'
+import CaseManage from '../pages/CaseManage.vue'
+import ContactInfoManage from '../pages/ContactInfoManage.vue'
+import LeadManage from '../pages/LeadManage.vue'
+import { getAdminMe } from '../api/adminAuth'
 
 async function requireAdminAuth(to) {
   try {
@@ -81,8 +30,57 @@ export default [
   },
   {
     path: '/admin',
-    name: 'admin-home',
-    component: AdminAuthHome,
+    component: AdminLayout,
     beforeEnter: requireAdminAuth,
+    children: [
+      {
+        path: '',
+        name: 'admin-dashboard',
+        component: AdminDashboard,
+        meta: { title: '工作台' },
+      },
+      {
+        path: 'media',
+        name: 'admin-media',
+        component: MediaManage,
+        meta: { title: '媒体上传' },
+      },
+      {
+        path: 'site-config',
+        name: 'admin-site-config',
+        component: SiteConfigManage,
+        meta: { title: '站点配置' },
+      },
+      {
+        path: 'home-banner',
+        name: 'admin-home-banner',
+        component: HomeBannerManage,
+        meta: { title: '首页 Banner' },
+      },
+      {
+        path: 'products',
+        name: 'admin-products',
+        component: ProductManage,
+        meta: { title: '产品管理' },
+      },
+      {
+        path: 'cases',
+        name: 'admin-cases',
+        component: CaseManage,
+        meta: { title: '案例管理' },
+      },
+      {
+        path: 'contact-info',
+        name: 'admin-contact-info',
+        component: ContactInfoManage,
+        meta: { title: '联系方式管理' },
+      },
+      {
+        path: 'leads',
+        name: 'admin-leads',
+        component: LeadManage,
+        meta: { title: '线索管理' },
+      },
+    ],
   },
 ]
