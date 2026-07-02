@@ -140,20 +140,26 @@ export const industrySolutions = [
   {
     name: '建材与新材料行业',
     iconUrl: '',
-    description: '围绕生产、销售、运输与经营分析，构建一体化数字平台能力',
-    customerTags: ['商混业务一体化', '销售结算', '运输协同'],
+    description: '构建从生产、物流到经营管理的一体化数字平台',
+    customerTags: ['天山材料｜商混MVP平台建设', '南方新材料｜集团数字化平台建设'],
   },
   {
     name: '能源与工程建设行业',
     iconUrl: '',
-    description: '面向工程项目与安全运营场景，提升全过程协同与风险识别能力',
-    customerTags: ['安全运营', '预警分析', '工程管理'],
+    description: '提升项目管理、安全运营与业务协同能力',
+    customerTags: ['海南核电｜核电预警系统建设', '中交二航局｜工程建设信息化平台'],
   },
   {
-    name: '集团经营管理场景',
+    name: '医疗健康行业',
     iconUrl: '',
-    description: '沉淀集团企业内部业务系统，实现数据贯通与协同运营',
-    customerTags: ['ERP一体化', '业务协同', '数据中台'],
+    description: '提升医疗管理与公共卫生服务数字化水平',
+    customerTags: ['团风县卫健委｜医疗信息化平台建设'],
+  },
+  {
+    name: '金融服务行业',
+    iconUrl: '',
+    description: '建设业务管理与数据分析平台',
+    customerTags: ['长江证券｜金融业务系统建设'],
   },
 ]
 

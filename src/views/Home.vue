@@ -46,14 +46,18 @@
       </div>
     </section>
 
-    <section id="products" class="section">
-      <div class="container">
+    <section id="products" class="section product-system">
+      <div class="container product-system-inner">
         <SectionTitle tag="产品体系" title="从能力底座到产品矩阵" desc="三层架构覆盖企业数字化全链路，五大产品让每一层能力都可落地" />
         <h3 class="base-title">能力底座</h3>
         <div class="base-cards">
-          <div v-for="(capability, index) in capabilities" :key="capability.id" :class="['base-card', capabilityClass(index)]"><h4>{{ capability.name }}</h4><p>{{ capabilityDescription(index) }}</p><span v-for="item in capabilityItems(capability)" :key="item.id">{{ item.name }}</span></div>
+          <div v-for="(capability, index) in capabilities" :key="capability.id" :class="['base-card', capabilityClass(index)]">
+            <h4>{{ capability.name }}</h4>
+            <p>{{ capabilityDescription(index) }}</p>
+            <span v-for="item in capabilityItems(capability)" :key="item.id">{{ item.name }}</span>
+          </div>
         </div>
-        <h3>产品矩阵</h3>
+        <h3 class="product-matrix-title">产品矩阵</h3>
         <div class="product-grid">
           <router-link v-for="(p, index) in products" :key="p.id" class="product-card" :class="{ soon: p.id === 'agent' }" :to="productTarget(p)">
             <span class="status">{{ p.status }}</span>
@@ -90,16 +94,21 @@
       </div>
     </section>
 
-    <section id="cases" class="section soft">
-      <div class="container">
+    <section id="cases" class="section soft industry-section">
+      <div class="container industry-inner">
         <SectionTitle tag="产品与行业方案" title="聚焦典型行业场景" desc="推动数字化与智能化价值落地" />
         <div class="case-grid">
-          <router-link v-for="(solution, index) in industrySolutions" :key="solution.name" to="/case" class="case-card">
+          <router-link v-for="(solution, index) in industrySolutions" :key="solution.name" to="/case" class="case-card industry-card" :class="industrySolutionClass(index)">
             <IconBox :name="industrySolutionIcon(solution, index)" :color="industrySolutionColor(index)" />
-            <span class="arrow">→</span>
+            <span class="arrow">↗</span>
             <h3>{{ solution.name }}</h3>
             <p>{{ solution.description }}</p>
-            <div class="customer"><b>典型客户</b><small>{{ customerTagsText(solution) }}</small></div>
+            <div class="customer">
+              <div class="customer-head"><b>典型客户</b><span>与标杆案例</span></div>
+              <div class="customer-tags">
+                <small v-for="tag in customerTags(solution)" :key="tag">{{ tag }}</small>
+              </div>
+            </div>
           </router-link>
         </div>
       </div>
@@ -127,8 +136,7 @@
             <h3><span class="panel-icon"><Award :size="26" /></span>资质与荣誉</h3>
             <div class="honor-grid">
               <p v-for="honor in honors" :key="honor.name">
-                <img v-if="honor.iconUrl" class="honor-icon" :src="honor.iconUrl" :alt="honor.name" />
-                <Trophy v-else :size="20" />
+                <Trophy :size="20" />
                 {{ honor.name }}
               </p>
             </div>
@@ -136,7 +144,12 @@
           <div class="strength-panel clients-panel">
             <h3><span class="panel-icon"><Building2 :size="26" /></span>服务客户</h3>
             <div class="client-grid">
-              <span v-for="(client, index) in clientLogos" :key="client.id"><img v-if="client.logoUrl && !failedClientLogos[client.id]" :src="client.logoUrl" :alt="client.name" @error="failedClientLogos[client.id] = true"><i v-else>{{ clientLogoFallback(index) }}</i>{{ client.name }}<small v-if="client.industry">{{ client.industry }}</small></span>
+              <span v-for="(client, index) in clientLogos" :key="client.id">
+                <img v-if="client.logoUrl && !failedClientLogos[client.id]" :src="client.logoUrl" :alt="client.name" @error="failedClientLogos[client.id] = true">
+                <component v-else :is="clientLogoFallback(index)" class="client-logo-icon" :size="30" />
+                {{ client.name }}
+                <small v-if="client.industry">{{ client.industry }}</small>
+              </span>
             </div>
           </div>
         </div>
@@ -264,8 +277,9 @@ const productDisplayMeta = defaultProducts.map((product) => ({
   icon: product.icon,
   color: product.color,
 }))
-const fallbackIndustryIcons = ['Factory', 'Zap', 'Building2', 'Database']
-const fallbackIndustryColors = ['orange', 'cyan', 'blue', 'green']
+const fallbackIndustryIcons = ['Factory', 'Zap', 'HeartPulse', 'Landmark']
+const fallbackIndustryColors = ['orange', 'cyan', 'green', 'purple']
+const industrySolutionClasses = ['materials', 'energy', 'healthcare', 'finance']
 const fallbackAiIcons = ['BookOpen', 'MessageSquare', 'ChartNoAxesColumn', 'Bot']
 const fallbackAiColors = ['orange', 'cyan', 'green', 'purple']
 const capabilityClasses = ['management', 'data', 'ai']
@@ -274,7 +288,7 @@ const capabilityDescriptions = [
   '打通多源数据与业务流程，构建统一的数据资产体系',
   '推动AI进入真实业务场景',
 ]
-const clientLogoFallbacks = ['🏗', '⚡', '📊', '🌉', '🏭']
+const clientLogoFallbackIcons = [Building2, Zap, BarChart3, Landmark, Building2]
 const strengthMetricIcons = [Users, Building2, Award, Trophy]
 const researchDirectionIcons = [BrainCircuit, BookOpen, Bot, Lightbulb]
 const valueCardIcons = ['Users', 'Handshake', 'Heart']
@@ -382,10 +396,14 @@ function industrySolutionColor(index: number) {
   return fallbackIndustryColors[index % fallbackIndustryColors.length]
 }
 
-function customerTagsText(solution: { customerTags?: unknown }) {
+function industrySolutionClass(index: number) {
+  return industrySolutionClasses[index % industrySolutionClasses.length]
+}
+
+function customerTags(solution: { customerTags?: unknown }) {
   return Array.isArray(solution.customerTags) && solution.customerTags.length
-    ? solution.customerTags.map(asText).filter(Boolean).join(' / ')
-    : ''
+    ? solution.customerTags.map(asText).filter(Boolean)
+    : []
 }
 
 function aiCardIcon(card: { iconUrl?: unknown }, index: number) {
@@ -411,7 +429,7 @@ function capabilityItems(capability: { items?: unknown }) {
 }
 
 function clientLogoFallback(index: number) {
-  return clientLogoFallbacks[index % clientLogoFallbacks.length]
+  return clientLogoFallbackIcons[index % clientLogoFallbackIcons.length]
 }
 
 function strengthMetricIcon(index: number) {
@@ -520,7 +538,7 @@ async function loadHonors() {
 async function loadProducts() {
   try {
     const data = await getPortalProducts()
-    if (Array.isArray(data)) products.value = data
+    if (Array.isArray(data) && data.length > 0) products.value = data
   } catch (error) {
     console.error('[Portal API] products failed, fallback to site.js', error)
     products.value = [...defaultProducts]
@@ -530,7 +548,7 @@ async function loadProducts() {
 async function loadIndustrySolutions() {
   try {
     const data = await getPortalIndustrySolutions()
-    if (Array.isArray(data)) industrySolutions.value = data
+    if (Array.isArray(data) && data.length > 0) industrySolutions.value = data
   } catch (error) {
     console.error('[Portal API] industry-solutions failed, fallback to site.js', error)
     industrySolutions.value = [...defaultIndustrySolutions]
@@ -549,7 +567,7 @@ async function loadContactInfo() {
 async function loadCooperationDirectionTags() {
   try {
     const data = await getPortalCooperationDirectionTags()
-    if (Array.isArray(data)) cooperationDirectionTags.value = data
+    if (Array.isArray(data) && data.length > 0) cooperationDirectionTags.value = data
   } catch (error) {
     console.error('[Portal API] cooperation-direction-tags failed, fallback to site.js', error)
     cooperationDirectionTags.value = [...defaultCooperationDirectionTags]
@@ -579,7 +597,7 @@ async function loadCapabilities() {
 async function loadClientLogos() {
   try {
     const data = await getPortalClientLogos()
-    if (Array.isArray(data)) clientLogos.value = data
+    if (Array.isArray(data) && data.length > 0) clientLogos.value = data
   } catch (error) {
     console.error('[Portal API] client-logos failed, fallback to site.js', error)
     clientLogos.value = [...defaultClientLogos]
@@ -589,7 +607,7 @@ async function loadClientLogos() {
 async function loadStrengthMetrics() {
   try {
     const data = await getPortalStrengthMetrics()
-    if (Array.isArray(data)) strengthMetrics.value = data
+    if (Array.isArray(data) && data.length >= defaultStrengthMetrics.length) strengthMetrics.value = data
   } catch (error) {
     console.error('[Portal API] strength-metrics failed, fallback to site.js', error)
     strengthMetrics.value = [...defaultStrengthMetrics]
@@ -599,7 +617,7 @@ async function loadStrengthMetrics() {
 async function loadPartnerUniversities() {
   try {
     const data = await getPortalPartnerUniversities()
-    if (Array.isArray(data)) partnerUniversities.value = data
+    if (Array.isArray(data) && data.length > 0) partnerUniversities.value = data
   } catch (error) {
     console.error('[Portal API] partner-universities failed, fallback to site.js', error)
     partnerUniversities.value = [...defaultPartnerUniversities]
@@ -609,7 +627,10 @@ async function loadPartnerUniversities() {
 async function loadTimelineEvents() {
   try {
     const data = await getPortalTimelineEvents()
-    if (Array.isArray(data)) timeline.value = mapTimelineRows(data)
+    if (Array.isArray(data)) {
+      const rows = mapTimelineRows(data).filter((item) => item.every(Boolean))
+      if (rows.length >= defaultTimeline.length) timeline.value = rows
+    }
   } catch (error) {
     console.error('[Portal API] timeline-events failed, fallback to site.js', error)
     timeline.value = mapTimelineRows(defaultTimelineEvents)
@@ -619,7 +640,7 @@ async function loadTimelineEvents() {
 async function loadResearchDirections() {
   try {
     const data = await getPortalResearchDirections()
-    if (Array.isArray(data)) researchDirections.value = data
+    if (Array.isArray(data) && data.length > 0) researchDirections.value = data
   } catch (error) {
     console.error('[Portal API] research-directions failed, fallback to site.js', error)
     researchDirections.value = [...defaultResearchDirections]

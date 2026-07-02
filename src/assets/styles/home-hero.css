@@ -670,6 +670,308 @@
   color: #2563eb;
 }
 
+.product-system {
+  padding: 72px 0 86px;
+  background: #fff;
+}
+
+.product-system-inner {
+  max-width: 900px;
+}
+
+.product-system .section-title {
+  margin-bottom: 48px;
+}
+
+.product-system .section-title span {
+  padding: 8px 15px;
+  background: #e8f0ff;
+  color: #2563eb;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.product-system .section-title h2 {
+  margin: 18px 0 10px;
+  color: #111827;
+  font-size: 31px;
+  line-height: 1.18;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.product-system .section-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.product-system .base-title,
+.product-system .product-matrix-title {
+  margin: 0 0 20px;
+  color: #111827;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.product-system .base-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin: 0 0 54px;
+}
+
+.product-system .base-cards .base-card {
+  min-height: 118px;
+  padding: 21px 24px;
+  border-color: #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.product-system .base-card h4 {
+  margin-bottom: 9px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.product-system .base-card p {
+  margin-bottom: 14px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.product-system .base-card span {
+  margin: 0 7px 6px 0;
+  padding: 5px 9px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.product-system .product-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 22px;
+  margin-top: 44px;
+}
+
+.product-system .product-card {
+  min-height: 186px;
+  padding: 22px 18px 20px;
+  border-color: #e9eef5;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.product-system .product-card .icon-box {
+  width: 43px;
+  height: 43px;
+  border-radius: 10px;
+}
+
+.product-system .product-card .status {
+  top: 17px;
+  right: 14px;
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.product-system .product-card h4 {
+  margin: 20px 0 6px;
+  color: #111827;
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.product-system .product-card b {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 900;
+}
+
+.product-system .product-card p {
+  margin: 11px 0 15px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.product-system .product-card em {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.product-system .product-card.soon {
+  background: linear-gradient(135deg, #fff7f9 0%, #fff0f5 100%);
+  border-color: #f7c8d6;
+}
+
+.product-system .product-card.soon .status {
+  background: #ffe4ec !important;
+  color: #e83b72 !important;
+}
+
+.industry-section {
+  padding: 76px 0 88px;
+  background: #f6f8fb;
+}
+
+.industry-inner {
+  max-width: 1370px;
+}
+
+.industry-section .section-title {
+  margin-bottom: 76px;
+}
+
+.industry-section .section-title span {
+  padding: 9px 20px;
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.industry-section .section-title h2 {
+  margin: 22px 0 16px;
+  color: #111827;
+  font-size: 42px;
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.industry-section .section-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.industry-section .case-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px 34px;
+}
+
+.industry-section .industry-card {
+  min-height: 360px;
+  padding: 38px 36px 34px;
+  border-color: #e7edf5;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.industry-section .industry-card .icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 11px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+}
+
+.industry-section .industry-card .arrow {
+  top: 38px;
+  right: 36px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.industry-section .industry-card h3 {
+  margin: 34px 0 18px;
+  color: #111827;
+  font-size: 27px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.industry-section .industry-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.industry-section .industry-card .customer {
+  margin-top: 34px;
+  min-height: 94px;
+  padding: 20px 22px;
+  border-radius: 12px;
+  background: #fff9e7;
+}
+
+.industry-section .industry-card.energy .customer {
+  background: #eef6ff;
+}
+
+.industry-section .industry-card.healthcare .customer {
+  background: #ecfdf5;
+}
+
+.industry-section .industry-card.finance .customer {
+  background: #faf5ff;
+}
+
+.industry-section .customer-head {
+  display: flex;
+  gap: 54px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.industry-section .customer-head b,
+.industry-section .customer-head span {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.industry-section .customer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.industry-section .customer-tags small {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 5px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
 .case-card:hover .arrow {
   transform: translate(3px, -3px);
   background: #dbeafe;
@@ -803,10 +1105,12 @@
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
-.client-grid i {
-  font-style: normal;
-  font-size: 30px;
-  line-height: 1;
+.client-grid .client-logo-icon {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  color: #2563eb;
+  stroke-width: 1.9;
 }
 
 .nums {
@@ -1034,6 +1338,50 @@
     font-size: 24px;
   }
 
+  .industry-section {
+    padding: 60px 0 68px;
+  }
+
+  .industry-section .section-title {
+    margin-bottom: 42px;
+  }
+
+  .industry-section .section-title h2 {
+    font-size: 30px;
+  }
+
+  .industry-section .section-title p {
+    font-size: 15px;
+  }
+
+  .industry-section .case-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .industry-section .industry-card {
+    min-height: auto;
+    padding: 28px 22px 24px;
+  }
+
+  .industry-section .industry-card .arrow {
+    top: 28px;
+    right: 22px;
+  }
+
+  .industry-section .industry-card h3 {
+    margin-top: 28px;
+    font-size: 22px;
+  }
+
+  .industry-section .industry-card p {
+    font-size: 15px;
+  }
+
+  .industry-section .customer-head {
+    gap: 24px;
+  }
+
   .base-title {
     font-size: 24px;
   }
@@ -1083,8 +1431,9 @@
     padding: 8px;
   }
 
-  .client-grid i {
-    font-size: 30px;
+  .client-grid .client-logo-icon {
+    width: 30px;
+    height: 30px;
   }
 
   .nums {
