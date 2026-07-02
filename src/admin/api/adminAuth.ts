@@ -41,7 +41,7 @@ function getErrorMessage(error: unknown, fallback = '请求失败') {
 
 function isCsrfError(error: unknown) {
   const code = getErrorCode(error)
-  return code === 20005 || code === '20005'
+  return code === 20005 || code === '20005' || code === 403 || code === '403'
 }
 
 export class AdminApiError extends Error {
@@ -87,7 +87,12 @@ async function postWithCsrf<T>(url: string, payload?: unknown, retry = true): Pr
 }
 
 export async function adminLogin(payload: { username: string; password: string }) {
-  return postWithCsrf<AdminCurrentUser>('/admin/api/auth/login', payload)
+  try {
+    const response = await http.post('/admin/api/auth/login', payload)
+    return unwrapApiData<AdminCurrentUser>(response.data)
+  } catch (error) {
+    throw new AdminApiError(getErrorMessage(error), getErrorCode(error))
+  }
 }
 
 export async function adminLogout() {

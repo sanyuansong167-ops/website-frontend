@@ -87,7 +87,7 @@ function getErrorMessage(error: unknown, fallback = '请求失败') {
 
 function isCsrfError(error: unknown) {
   const code = getErrorCode(error)
-  return code === 20005 || code === '20005'
+  return code === 20005 || code === '20005' || code === 403 || code === '403'
 }
 
 async function withCsrf<T>(request: (headers: Record<string, string>) => Promise<T>, retry = true): Promise<T> {

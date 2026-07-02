@@ -25,7 +25,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { adminLogin, getAdminCsrf, getAdminMe } from '../api/adminAuth'
+import { adminLogin, getAdminMe } from '../api/adminAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,7 +56,7 @@ async function handleSubmit() {
       username: form.username,
       password: form.password,
     })
-    router.replace(getRedirectPath())
+    void router.replace(getRedirectPath())
   } catch (error) {
     errorMessage.value = error?.message || '登录失败，请稍后重试'
   } finally {
@@ -66,17 +66,10 @@ async function handleSubmit() {
 
 onMounted(async () => {
   try {
-    await getAdminCsrf()
-  } catch (error) {
-    errorMessage.value = error?.message || '登录初始化失败，请刷新页面'
-    return
-  }
-
-  try {
     await getAdminMe()
-    router.replace(getRedirectPath())
+    await router.replace(getRedirectPath())
   } catch {
-    // 未登录是登录页的正常状态。
+    // Not logged in is the normal state for the login page.
   }
 })
 </script>

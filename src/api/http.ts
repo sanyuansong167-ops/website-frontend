@@ -3,6 +3,7 @@ import axios from 'axios'
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true,
+  xsrfCookieName: null,
 })
 
 export function getApiMessage(payload: unknown, fallback = '请求失败') {
