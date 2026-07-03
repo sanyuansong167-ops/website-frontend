@@ -2,8 +2,8 @@
   <section class="site-module">
     <header class="site-module__header">
       <div>
-        <p>Site Module</p>
-        <h2>{{ currentConfig?.title || '未找到模块' }}</h2>
+        <p>{{ formConfig ? '内容运营' : 'Site Module' }}</p>
+        <h2>{{ currentConfig?.title || '未找到模块' }}{{ formConfig ? '管理' : '' }}</h2>
       </div>
       <select v-model="selectedKey" @change="goSelectedModule">
         <option v-for="item in adminSiteModuleConfigs" :key="item.key" :value="item.key">
@@ -13,6 +13,43 @@
     </header>
 
     <p v-if="!currentConfig" class="site-module__error">当前后台模块不存在。</p>
+
+    <template v-else-if="formConfig">
+      <div class="site-module__toolbar">
+        <div class="site-module__toolbar-actions">
+          <button v-if="formConfig.api.create" type="button" :disabled="loading" @click="openCreateForm">
+            新增 {{ formConfig.title }}
+          </button>
+          <button type="button" class="site-module__ghost-button" :disabled="loading" @click="loadData">
+            {{ loading ? '刷新中...' : '刷新' }}
+          </button>
+        </div>
+        <span>按配置表单管理</span>
+      </div>
+
+      <p v-if="message" class="site-module__message">{{ message }}</p>
+      <p v-if="errorMessage" class="site-module__error">{{ errorMessage }}</p>
+
+      <SiteModuleList
+        :config="formConfig"
+        :list-data="rows"
+        :loading="saving || loading"
+        @edit="openEditForm"
+        @delete="deleteManagedItem"
+        @toggle-visibility="toggleManagedVisibility"
+        @reorder="reorderManagedItems"
+      />
+
+      <SiteModuleForm
+        v-if="dialogOpen"
+        :config="formConfig"
+        :form-data="dialogFormData"
+        :mode="dialogMode"
+        :saving="saving"
+        @submit="saveManagedForm"
+        @cancel="closeDialog"
+      />
+    </template>
 
     <template v-else>
       <div class="site-module__toolbar">
@@ -84,6 +121,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import http, { unwrapApiData } from '../../api/http'
+import SiteModuleForm from '../components/SiteModuleForm.vue'
+import SiteModuleList from '../components/SiteModuleList.vue'
+import { getSiteModuleFormConfig, type SiteModuleFormConfig } from '../config/adminSiteModuleFormConfig'
+import { requestAdminWithCsrf } from '../api/adminAuth'
 import {
   adminSiteModuleConfigs,
   createAdminSiteModuleItem,
@@ -104,6 +146,9 @@ const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
+const dialogOpen = ref(false)
+const dialogMode = ref<'create' | 'edit'>('create')
+const dialogFormData = ref<Record<string, unknown>>({})
 const form = reactive({
   id: '',
   payload: '{}',
@@ -112,9 +157,18 @@ const form = reactive({
 })
 
 const currentConfig = computed(() => getAdminSiteModuleConfig(selectedKey.value))
+const formConfig = computed(() => getSiteModuleFormConfig(selectedKey.value))
 
 const rows = computed(() => {
   const data = rawData.value
+  if (formConfig.value?.listMode === 'singleton') return isRecord(data) ? [data] : []
+  if (formConfig.value?.listMode === 'tree-items') {
+    const categories = Array.isArray(data) ? data.filter(isRecord) : []
+    return categories.flatMap((category) => {
+      const items = Array.isArray(category.items) ? category.items.filter(isRecord) : []
+      return items.map((item) => ({ ...item, categoryId: item.categoryId ?? category.id }))
+    })
+  }
   if (Array.isArray(data)) return data.filter(isRecord)
   if (isRecord(data) && Array.isArray(data.list)) return data.list.filter(isRecord)
   if (isRecord(data) && Array.isArray(data.records)) return data.records.filter(isRecord)
@@ -133,14 +187,31 @@ function parseJson(value: string) {
   return JSON.parse(trimmed)
 }
 
-function rowId(row: Record<string, unknown>) {
-  const idField = currentConfig.value?.idField
+function replaceId(path: string, id: string | number) {
+  return path.replace('{id}', encodeURIComponent(String(id)))
+}
+
+function toNumber(value: unknown, fallback = 0) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : fallback
+}
+
+function rowId(row: Record<string, unknown>, config = currentConfig.value) {
+  const idField = config?.idField
   return String((idField && row[idField]) || row.id || row.menuId || row.metricId || row.clientLogoId || row.honorId || '')
+}
+
+function managedRowId(row: Record<string, unknown>, config: SiteModuleFormConfig) {
+  return String(row[config.idField] || row.id || '')
 }
 
 function rowVersion(row: Record<string, unknown>) {
   const versionField = currentConfig.value?.versionField || 'version'
   return row[versionField]
+}
+
+function managedRowVersion(row: Record<string, unknown>, config: SiteModuleFormConfig) {
+  return row[config.versionField] ?? 0
 }
 
 function rowTitle(row: Record<string, unknown>, index: number) {
@@ -161,12 +232,54 @@ function rowKey(row: Record<string, unknown>, index: number) {
   return rowId(row) || `${selectedKey.value}-${index}`
 }
 
-function selectRow(row: Record<string, unknown>) {
-  selectedRow.value = row
-  form.id = rowId(row)
-  form.payload = JSON.stringify(row, null, 2)
-  const version = rowVersion(row) ?? 0
-  form.visibilityPayload = JSON.stringify({ visible: row.visible ?? true, version }, null, 2)
+function friendlyErrorMessage(error: unknown, fallback: string) {
+  const messageText = error instanceof Error ? error.message : ''
+  if (/network|timeout|axios|err_network/i.test(messageText)) return '网络异常，请联系管理员'
+  if (/exception|stacktrace|java\.|org\.springframework/i.test(messageText)) return fallback
+  if (messageText && /[\u4e00-\u9fff]/.test(messageText)) return messageText
+  return fallback
+}
+
+function createFormData(config: SiteModuleFormConfig, row?: Record<string, unknown>) {
+  const data: Record<string, unknown> = {}
+  config.fields.forEach((field) => {
+    if (row) {
+      data[field.key] = field.valueFromRow ? field.valueFromRow(row) : row[field.key]
+      return
+    }
+    if (field.key === 'sortOrder') {
+      data[field.key] = rows.value.length + 1
+      return
+    }
+    if (field.key === 'year') {
+      data[field.key] = new Date().getFullYear()
+      return
+    }
+    data[field.key] = field.defaultValue ?? (field.type === 'switch' ? true : '')
+  })
+
+  if (row) {
+    data[config.idField] = managedRowId(row, config)
+    data[config.versionField] = managedRowVersion(row, config)
+  } else {
+    data[config.versionField] = 0
+  }
+
+  return data
+}
+
+function buildPayloadFromData(config: SiteModuleFormConfig, data: Record<string, unknown>, includeVersion: boolean) {
+  const payload: Record<string, unknown> = {}
+  config.fields.forEach((field) => {
+    if (field.submit === false) return
+    const value = data[field.key]
+    if (field.required && (value === '' || value === null || value === undefined)) {
+      throw new Error(`请填写${field.label}`)
+    }
+    payload[field.key] = field.submitValue ? field.submitValue(value) : value === '' ? null : value
+  })
+  if (includeVersion) payload[config.versionField] = data[config.versionField] ?? 0
+  return payload
 }
 
 function syncSelectedKeyFromRoute() {
@@ -178,6 +291,28 @@ function goSelectedModule() {
   void router.push(`/admin/site-modules/${selectedKey.value}`)
 }
 
+function closeDialog() {
+  dialogOpen.value = false
+}
+
+function openCreateForm() {
+  if (!formConfig.value) return
+  message.value = ''
+  errorMessage.value = ''
+  dialogMode.value = 'create'
+  dialogFormData.value = createFormData(formConfig.value)
+  dialogOpen.value = true
+}
+
+function openEditForm(row: Record<string, unknown>) {
+  if (!formConfig.value) return
+  message.value = ''
+  errorMessage.value = ''
+  dialogMode.value = 'edit'
+  dialogFormData.value = createFormData(formConfig.value, row)
+  dialogOpen.value = true
+}
+
 async function loadData() {
   if (!currentConfig.value) return
   loading.value = true
@@ -185,18 +320,23 @@ async function loadData() {
   errorMessage.value = ''
 
   try {
-    rawData.value = await getAdminSiteModuleData(currentConfig.value)
+    if (formConfig.value) {
+      const response = await http.get(formConfig.value.api.list, { params: { pageNo: 1, pageSize: 200 } })
+      rawData.value = unwrapApiData<unknown>(response.data)
+    } else {
+      rawData.value = await getAdminSiteModuleData(currentConfig.value)
+    }
     selectedRow.value = null
     form.id = ''
     form.payload = currentConfig.value.singleton ? JSON.stringify(rawData.value ?? {}, null, 2) : '{}'
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '加载失败'
+    errorMessage.value = friendlyErrorMessage(error, '网络异常，请联系管理员')
   } finally {
     loading.value = false
   }
 }
 
-async function mutate(action: () => Promise<unknown>, successText: string) {
+async function mutate(action: () => Promise<unknown>, successText: string, failureText = '操作失败') {
   saving.value = true
   message.value = ''
   errorMessage.value = ''
@@ -205,11 +345,103 @@ async function mutate(action: () => Promise<unknown>, successText: string) {
     await action()
     message.value = successText
     await loadData()
+    return true
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '操作失败'
+    errorMessage.value = friendlyErrorMessage(error, failureText)
+    return false
   } finally {
     saving.value = false
   }
+}
+
+async function saveManagedForm(payload: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config) return
+
+  const success =
+    dialogMode.value === 'create'
+      ? !config.api.create
+        ? false
+        : await mutate(() => requestAdminWithCsrf('post', config.api.create!, payload), '新增成功', '保存失败，请稍后重试')
+      : !config.api.update
+        ? false
+        : await mutate(
+            () =>
+              requestAdminWithCsrf(
+                'put',
+                replaceId(config.api.update!, String(dialogFormData.value[config.idField] || '')),
+                payload,
+              ),
+            '保存成功',
+            '保存失败，请稍后重试',
+          )
+  if (success) closeDialog()
+}
+
+async function deleteManagedItem(row: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config || !config.api.delete) return
+  const id = managedRowId(row, config)
+  if (!id) {
+    errorMessage.value = `未找到要删除的${config.title}`
+    return
+  }
+  if (!window.confirm(`确认删除“${rowTitle(row, 0)}”？`)) return
+
+  let path = replaceId(config.api.delete, id)
+  if (config.delete.mode === 'query') {
+    path = `${path}?version=${encodeURIComponent(String(managedRowVersion(row, config)))}`
+    await mutate(() => requestAdminWithCsrf('delete', path), '删除成功', '删除失败，请检查数据状态')
+    return
+  }
+  await mutate(
+    () => requestAdminWithCsrf('delete', path, { [config.versionField]: managedRowVersion(row, config) }),
+    '删除成功',
+    '删除失败，请检查数据状态',
+  )
+}
+
+async function toggleManagedVisibility(row: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config || !config.visibility.enabled || !config.api.update) return
+  const data = createFormData(config, row)
+  data[config.visibility.field] = row[config.visibility.field] === false
+  await mutate(
+    () => requestAdminWithCsrf('put', replaceId(config.api.update, managedRowId(row, config)), buildPayloadFromData(config, data, true)),
+    data[config.visibility.field] ? '已显示' : '已隐藏',
+    '保存失败，请稍后重试',
+  )
+}
+
+async function reorderManagedItems(index: number, direction: -1 | 1) {
+  const config = formConfig.value
+  if (!config || !config.reorder.enabled || !config.reorder.path || !config.reorder.method) return
+  const nextIndex = index + direction
+  if (nextIndex < 0 || nextIndex >= rows.value.length) return
+
+  const orderedRows = [...rows.value]
+  ;[orderedRows[index], orderedRows[nextIndex]] = [orderedRows[nextIndex], orderedRows[index]]
+  const payload =
+    config.reorder.mode === 'ordered-ids'
+      ? { [config.reorder.orderedIdsField || 'orderedIds']: orderedRows.map((item) => toNumber(managedRowId(item, config))) }
+      : orderedRows.map((item, sortIndex) => ({
+          id: toNumber(managedRowId(item, config)),
+          [config.reorder.sortField || 'sortOrder']: sortIndex + 1,
+        }))
+
+  await mutate(
+    () => requestAdminWithCsrf(config.reorder.method, config.reorder.path, payload),
+    '排序成功',
+    '保存失败，请稍后重试',
+  )
+}
+
+function selectRow(row: Record<string, unknown>) {
+  selectedRow.value = row
+  form.id = rowId(row)
+  form.payload = JSON.stringify(row, null, 2)
+  const version = rowVersion(row) ?? 0
+  form.visibilityPayload = JSON.stringify({ visible: row.visible ?? true, version }, null, 2)
 }
 
 async function createItem() {
@@ -253,6 +485,7 @@ watch(
   () => route.params.moduleKey,
   () => {
     syncSelectedKeyFromRoute()
+    closeDialog()
     void loadData()
   },
 )
@@ -292,7 +525,6 @@ onMounted(() => {
   color: #64748b;
   font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .site-module__header h2,
@@ -317,8 +549,14 @@ onMounted(() => {
 
 .site-module__toolbar span {
   color: #64748b;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
+}
+
+.site-module__toolbar-actions,
+.site-module__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .site-module__grid {
@@ -376,11 +614,10 @@ onMounted(() => {
 }
 
 .site-module textarea {
-  min-height: 220px;
+  min-height: 120px;
   padding: 10px;
   resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -394,12 +631,6 @@ onMounted(() => {
   color: #e2e8f0;
   font-size: 12px;
   line-height: 1.55;
-}
-
-.site-module__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .site-module button {
@@ -417,6 +648,12 @@ onMounted(() => {
 .site-module button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.site-module__ghost-button {
+  border: 1px solid #cbd5e1 !important;
+  background: #fff !important;
+  color: #334155 !important;
 }
 
 .site-module__message,
@@ -440,6 +677,18 @@ onMounted(() => {
 @media (max-width: 1180px) {
   .site-module__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .site-module__header,
+  .site-module__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .site-module__header select {
+    max-width: none;
   }
 }
 </style>

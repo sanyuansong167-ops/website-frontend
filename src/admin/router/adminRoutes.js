@@ -2,6 +2,7 @@ import AdminLogin from '../pages/AdminLogin.vue'
 import AdminLayout from '../layout/AdminLayout.vue'
 import AdminDashboard from '../pages/AdminDashboard.vue'
 import MediaManage from '../pages/MediaManage.vue'
+import MediaLibrary from '../pages/MediaLibrary.vue'
 import SiteConfigManage from '../pages/SiteConfigManage.vue'
 import HomeBannerManage from '../pages/HomeBannerManage.vue'
 import AdminSiteModuleManage from '../pages/AdminSiteModuleManage.vue'
@@ -45,6 +46,12 @@ export default [
         name: 'admin-media',
         component: MediaManage,
         meta: { title: '媒体上传' },
+      },
+      {
+        path: 'media-library',
+        name: 'admin-media-library',
+        component: MediaLibrary,
+        meta: { title: '媒体库' },
       },
       {
         path: 'site-config',

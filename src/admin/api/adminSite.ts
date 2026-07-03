@@ -51,6 +51,7 @@ export type AdminSiteModuleConfig = {
   idField?: string
   versionField?: string
   orderMethod?: 'post' | 'put'
+  deleteVersionQuery?: boolean
 }
 
 export const adminSiteModuleConfigs: AdminSiteModuleConfig[] = [
@@ -98,6 +99,7 @@ export const adminSiteModuleConfigs: AdminSiteModuleConfig[] = [
     deletePath: '/admin/api/site/ai-cards/{id}',
     reorderPath: '/admin/api/site/ai-cards/batch-sort',
     orderMethod: 'put',
+    deleteVersionQuery: true,
   },
   {
     key: 'capability-categories',
@@ -255,7 +257,9 @@ export async function updateAdminHomeBanner(payload: {
 }
 
 export async function getAdminSiteModuleData(config: AdminSiteModuleConfig) {
-  const response = await http.get(config.listPath)
+  const response = await http.get(config.listPath, {
+    params: config.key === 'ai-cards' ? { pageNo: 1, pageSize: 200 } : undefined,
+  })
   return unwrapApiData<unknown>(response.data)
 }
 
@@ -282,7 +286,15 @@ export async function deleteAdminSiteModuleItem(
   payload?: unknown,
 ) {
   if (!config.deletePath) throw new Error('当前模块不支持删除')
-  return requestAdminWithCsrf<unknown>('delete', replaceId(config.deletePath, id), payload)
+  let path = replaceId(config.deletePath, id)
+  if (config.deleteVersionQuery) {
+    const version = payload && typeof payload === 'object' && 'version' in payload ? (payload as { version?: unknown }).version : undefined
+    if (version === undefined || version === null || version === '') {
+      throw new Error('缺少版本号，请刷新后重试')
+    }
+    path = `${path}?version=${encodeURIComponent(String(version))}`
+  }
+  return requestAdminWithCsrf<unknown>('delete', path, config.deleteVersionQuery ? undefined : payload)
 }
 
 export async function reorderAdminSiteModule(config: AdminSiteModuleConfig, payload: unknown) {

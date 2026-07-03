@@ -26,6 +26,7 @@
 const navItems = [
   { to: '/admin', icon: '⌂', label: '工作台' },
   { to: '/admin/media', icon: '↥', label: '媒体上传' },
+  { to: '/admin/media-library', icon: '▧', label: '媒体库' },
   { to: '/admin/site-config', icon: '◆', label: '站点配置' },
   { to: '/admin/home-banner', icon: '▣', label: '首页 Banner' },
   { to: '/admin/site-modules/home-metrics', icon: '1', label: '首页指标' },
