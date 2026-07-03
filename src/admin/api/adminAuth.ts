@@ -1,4 +1,9 @@
-import http, { getApiMessage, unwrapApiData } from '../../api/http'
+import http, {
+  getApiErrorCode,
+  getApiErrorMessage,
+  isCsrfError,
+  unwrapApiData,
+} from '../../api/http'
 
 export type AdminCurrentUser = {
   userId: number
@@ -7,42 +12,15 @@ export type AdminCurrentUser = {
   roleCode: string
 }
 
-type CsrfToken = {
+export type CsrfToken = {
   token: string
   headerName: string
   parameterName: string
 }
 
+export type AdminHttpMethod = 'post' | 'put' | 'patch' | 'delete'
+
 let csrfToken: CsrfToken | null = null
-
-function getErrorCode(error: unknown) {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { status?: number; data?: unknown }; code?: unknown }
-    const data = source.response?.data
-
-    if (data && typeof data === 'object' && 'code' in data) {
-      return (data as { code?: unknown }).code
-    }
-
-    return source.response?.status ?? source.code
-  }
-
-  return undefined
-}
-
-function getErrorMessage(error: unknown, fallback = '请求失败') {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { data?: unknown }; message?: string }
-    return getApiMessage(source.response?.data, source.message || fallback)
-  }
-
-  return fallback
-}
-
-function isCsrfError(error: unknown) {
-  const code = getErrorCode(error)
-  return code === 20005 || code === '20005' || code === 403 || code === '403'
-}
 
 export class AdminApiError extends Error {
   code?: unknown
@@ -60,29 +38,44 @@ export async function getAdminCsrf() {
   return csrfToken
 }
 
-async function ensureCsrfToken() {
+export async function ensureAdminCsrf() {
   if (csrfToken?.token && csrfToken.headerName) return csrfToken
   return getAdminCsrf()
 }
 
-function csrfHeaders(token: CsrfToken) {
+export function getAdminCsrfHeaders(token: CsrfToken) {
   return {
     [token.headerName]: token.token,
   }
 }
 
-async function postWithCsrf<T>(url: string, payload?: unknown, retry = true): Promise<T> {
+export async function requestAdminWithCsrf<T>(
+  method: AdminHttpMethod,
+  url: string,
+  payload?: unknown,
+  config: Record<string, unknown> = {},
+  retry = true,
+): Promise<T> {
   try {
-    const token = await ensureCsrfToken()
-    const response = await http.post(url, payload, { headers: csrfHeaders(token) })
+    const token = await ensureAdminCsrf()
+    const headers = {
+      ...((config.headers as Record<string, string> | undefined) || {}),
+      ...getAdminCsrfHeaders(token),
+    }
+    const requestConfig = { ...config, headers }
+    const response =
+      method === 'delete'
+        ? await http.delete(url, { ...requestConfig, data: payload })
+        : await http[method](url, payload, requestConfig)
+
     return unwrapApiData<T>(response.data)
   } catch (error) {
     if (retry && isCsrfError(error)) {
       csrfToken = null
-      return postWithCsrf<T>(url, payload, false)
+      return requestAdminWithCsrf<T>(method, url, payload, config, false)
     }
 
-    throw new AdminApiError(getErrorMessage(error), getErrorCode(error))
+    throw new AdminApiError(getApiErrorMessage(error), getApiErrorCode(error))
   }
 }
 
@@ -91,12 +84,12 @@ export async function adminLogin(payload: { username: string; password: string }
     const response = await http.post('/admin/api/auth/login', payload)
     return unwrapApiData<AdminCurrentUser>(response.data)
   } catch (error) {
-    throw new AdminApiError(getErrorMessage(error), getErrorCode(error))
+    throw new AdminApiError(getApiErrorMessage(error), getApiErrorCode(error))
   }
 }
 
 export async function adminLogout() {
-  return postWithCsrf<void>('/admin/api/auth/logout')
+  return requestAdminWithCsrf<void>('post', '/admin/api/auth/logout')
 }
 
 export async function getAdminMe() {
@@ -104,7 +97,7 @@ export async function getAdminMe() {
     const response = await http.get('/admin/api/auth/me')
     return unwrapApiData<AdminCurrentUser>(response.data)
   } catch (error) {
-    throw new AdminApiError(getErrorMessage(error, '请先登录'), getErrorCode(error))
+    throw new AdminApiError(getApiErrorMessage(error, '请先登录'), getApiErrorCode(error))
   }
 }
 

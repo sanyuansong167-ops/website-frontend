@@ -4,6 +4,7 @@ import AdminDashboard from '../pages/AdminDashboard.vue'
 import MediaManage from '../pages/MediaManage.vue'
 import SiteConfigManage from '../pages/SiteConfigManage.vue'
 import HomeBannerManage from '../pages/HomeBannerManage.vue'
+import AdminSiteModuleManage from '../pages/AdminSiteModuleManage.vue'
 import ProductManage from '../pages/ProductManage.vue'
 import CaseManage from '../pages/CaseManage.vue'
 import ContactInfoManage from '../pages/ContactInfoManage.vue'
@@ -56,6 +57,12 @@ export default [
         name: 'admin-home-banner',
         component: HomeBannerManage,
         meta: { title: '首页 Banner' },
+      },
+      {
+        path: 'site-modules/:moduleKey',
+        name: 'admin-site-module',
+        component: AdminSiteModuleManage,
+        meta: { title: 'Site 模块管理' },
       },
       {
         path: 'products',

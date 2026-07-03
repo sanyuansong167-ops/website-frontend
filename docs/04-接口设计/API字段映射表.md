@@ -276,3 +276,10 @@
 | 行业解决方案与标杆案例在首页的模块边界 | 待确认 | 两者均有后端接口，当前页面使用本地案例数据 |
 | 产品 `logoUrl`、`detailLink` 对应前端展示字段 | 待确认 | 当前页面使用 lucide `icon` 和固定路由 |
 | 案例 `logoUrl` 是否等同封面图 | 待确认 | 接口文档描述为封面访问地址，当前前端字段为 `img` |
+# 2026-07-02 字段映射修复记录
+
+- Lead 提交字段以 `LeadCreateRequestDTO` 为准：前端 `contactName/companyName/demandContent` 映射到后端 `name/company/demandDescription`，保留 `email/phone` 原名，不新增 `message/type`。
+- 产品列表真实字段保持 `id/name/logoUrl/subTitle/abstractText/statusTag/detailLink`，前端展示层继续映射为 `id/title/logoUrl/sub/desc/status/detailLink`。
+- 案例列表真实字段保持 `title/logoUrl/summary/keywords`，前端展示层继续映射为 `title/img/desc/tags`。
+- Site 模块路径以 Controller 为准：后台为 `/admin/api/site/config`、`/admin/api/site/home-banner`、`/admin/api/site/home-metrics`、`/admin/api/site/navigation/menus` 等；前台为 `/portal/api/site/**` 或对应 `/portal/api/**`。
+- 后台新增通用 JSON 管理页不臆造 DTO 字段，直接展示真实返回并由管理员按接口文档提交 JSON payload。

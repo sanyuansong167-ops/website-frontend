@@ -25,7 +25,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { adminLogin, getAdminMe } from '../api/adminAuth'
+import { adminLogin, getAdminCsrf, getAdminMe } from '../api/adminAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +56,8 @@ async function handleSubmit() {
       username: form.username,
       password: form.password,
     })
+    await getAdminMe()
+    await getAdminCsrf()
     void router.replace(getRedirectPath())
   } catch (error) {
     errorMessage.value = error?.message || '登录失败，请稍后重试'

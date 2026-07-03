@@ -1,5 +1,5 @@
-import http, { getApiMessage, unwrapApiData } from '../../api/http'
-import { getAdminCsrf } from './adminAuth'
+import http, { unwrapApiData } from '../../api/http'
+import { requestAdminWithCsrf } from './adminAuth'
 
 export type AdminSiteConfig = {
   id?: number
@@ -38,51 +38,186 @@ export type AdminHomeBanner = {
   updatedAt?: string
 }
 
-function getErrorCode(error: unknown) {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { status?: number; data?: unknown }; code?: unknown }
-    const data = source.response?.data
-
-    if (data && typeof data === 'object' && 'code' in data) {
-      return (data as { code?: unknown }).code
-    }
-
-    return source.response?.status ?? source.code
-  }
-
-  return undefined
+export type AdminSiteModuleConfig = {
+  key: string
+  title: string
+  listPath: string
+  createPath?: string
+  updatePath?: string
+  deletePath?: string
+  reorderPath?: string
+  visibilityPath?: string
+  singleton?: boolean
+  idField?: string
+  versionField?: string
+  orderMethod?: 'post' | 'put'
 }
 
-function getErrorMessage(error: unknown, fallback = '请求失败') {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { data?: unknown }; message?: string }
-    return getApiMessage(source.response?.data, source.message || fallback)
-  }
+export const adminSiteModuleConfigs: AdminSiteModuleConfig[] = [
+  {
+    key: 'home-metrics',
+    title: '首页指标',
+    listPath: '/admin/api/site/home-metrics',
+    createPath: '/admin/api/site/home-metrics',
+    updatePath: '/admin/api/site/home-metrics/{id}',
+    deletePath: '/admin/api/site/home-metrics/{id}',
+    reorderPath: '/admin/api/site/home-metrics/order',
+    visibilityPath: '/admin/api/site/home-metrics/{id}/visibility',
+    idField: 'metricId',
+    orderMethod: 'put',
+  },
+  {
+    key: 'navigation',
+    title: '导航菜单',
+    listPath: '/admin/api/site/navigation/menus',
+    createPath: '/admin/api/site/navigation/menus',
+    updatePath: '/admin/api/site/navigation/menus/{id}',
+    deletePath: '/admin/api/site/navigation/menus/{id}',
+    reorderPath: '/admin/api/site/navigation/menus/order',
+    visibilityPath: '/admin/api/site/navigation/menus/{id}/visibility',
+    idField: 'menuId',
+    orderMethod: 'put',
+  },
+  {
+    key: 'honors',
+    title: '荣誉资质',
+    listPath: '/admin/api/site/honors',
+    createPath: '/admin/api/site/honors',
+    updatePath: '/admin/api/site/honors/{id}',
+    deletePath: '/admin/api/site/honors/{id}',
+    reorderPath: '/admin/api/site/honors/batch-sort',
+    idField: 'honorId',
+    orderMethod: 'put',
+  },
+  {
+    key: 'ai-cards',
+    title: 'AI 卡片',
+    listPath: '/admin/api/site/ai-cards',
+    createPath: '/admin/api/site/ai-cards',
+    updatePath: '/admin/api/site/ai-cards/{id}',
+    deletePath: '/admin/api/site/ai-cards/{id}',
+    reorderPath: '/admin/api/site/ai-cards/batch-sort',
+    orderMethod: 'put',
+  },
+  {
+    key: 'capability-categories',
+    title: '能力底座分类',
+    listPath: '/admin/api/site/capability-categories',
+    createPath: '/admin/api/site/capability-categories',
+    updatePath: '/admin/api/site/capability-categories/{id}',
+    deletePath: '/admin/api/site/capability-categories/{id}',
+    reorderPath: '/admin/api/site/capability-categories/batch-sort',
+    orderMethod: 'put',
+  },
+  {
+    key: 'capability-items',
+    title: '能力底座子项',
+    listPath: '/admin/api/site/capability-categories',
+    createPath: '/admin/api/site/capability-items',
+    updatePath: '/admin/api/site/capability-items/{id}',
+    deletePath: '/admin/api/site/capability-items/{id}',
+    reorderPath: '/admin/api/site/capability-items/batch-sort',
+    orderMethod: 'put',
+  },
+  {
+    key: 'client-logos',
+    title: '客户 Logo',
+    listPath: '/admin/api/site/client-logos',
+    createPath: '/admin/api/site/client-logos',
+    updatePath: '/admin/api/site/client-logos/{id}',
+    deletePath: '/admin/api/site/client-logos/{id}',
+    reorderPath: '/admin/api/site/client-logos/batch-sort',
+    idField: 'clientLogoId',
+    orderMethod: 'put',
+  },
+  {
+    key: 'strength-metrics',
+    title: '实力指标',
+    listPath: '/admin/api/site/strength-metrics',
+    createPath: '/admin/api/site/strength-metrics',
+    updatePath: '/admin/api/site/strength-metrics/{id}',
+    deletePath: '/admin/api/site/strength-metrics/{id}',
+    reorderPath: '/admin/api/site/strength-metrics/batch-sort',
+    orderMethod: 'put',
+  },
+  {
+    key: 'partner-universities',
+    title: '合作高校',
+    listPath: '/admin/api/partner-universities',
+    createPath: '/admin/api/partner-universities',
+    updatePath: '/admin/api/partner-universities/{id}',
+    deletePath: '/admin/api/partner-universities/{id}',
+    reorderPath: '/admin/api/partner-universities/reorder',
+  },
+  {
+    key: 'research-directions',
+    title: '研发方向',
+    listPath: '/admin/api/research-directions',
+    createPath: '/admin/api/research-directions',
+    updatePath: '/admin/api/research-directions/{id}',
+    deletePath: '/admin/api/research-directions/{id}',
+    reorderPath: '/admin/api/research-directions/reorder',
+  },
+  {
+    key: 'timeline-events',
+    title: '时间线',
+    listPath: '/admin/api/timeline-events',
+    createPath: '/admin/api/timeline-events',
+    updatePath: '/admin/api/timeline-events/{id}',
+    deletePath: '/admin/api/timeline-events/{id}',
+    reorderPath: '/admin/api/timeline-events/reorder',
+  },
+  {
+    key: 'value-cards',
+    title: '价值卡片',
+    listPath: '/admin/api/value-cards',
+    createPath: '/admin/api/value-cards',
+    updatePath: '/admin/api/value-cards/{id}',
+    deletePath: '/admin/api/value-cards/{id}',
+    reorderPath: '/admin/api/value-cards/reorder',
+  },
+  {
+    key: 'promise-content',
+    title: '承诺内容',
+    listPath: '/admin/api/promise-content',
+    updatePath: '/admin/api/promise-content',
+    singleton: true,
+  },
+  {
+    key: 'promise-tags',
+    title: '承诺标签',
+    listPath: '/admin/api/promise-tags',
+    createPath: '/admin/api/promise-tags',
+    updatePath: '/admin/api/promise-tags/{id}',
+    deletePath: '/admin/api/promise-tags/{id}',
+    reorderPath: '/admin/api/promise-tags/reorder',
+  },
+  {
+    key: 'industry-solutions',
+    title: '行业方案',
+    listPath: '/admin/api/industry-solutions',
+    createPath: '/admin/api/industry-solutions',
+    updatePath: '/admin/api/industry-solutions/{id}',
+    deletePath: '/admin/api/industry-solutions/{id}',
+    reorderPath: '/admin/api/industry-solutions/reorder',
+  },
+  {
+    key: 'cooperation-direction-tags',
+    title: '合作方向标签',
+    listPath: '/admin/api/cooperation-direction-tags',
+    createPath: '/admin/api/cooperation-direction-tags',
+    updatePath: '/admin/api/cooperation-direction-tags/{id}',
+    deletePath: '/admin/api/cooperation-direction-tags/{id}',
+    reorderPath: '/admin/api/cooperation-direction-tags/reorder',
+  },
+]
 
-  return fallback
+export function getAdminSiteModuleConfig(key: string) {
+  return adminSiteModuleConfigs.find((item) => item.key === key)
 }
 
-function isCsrfError(error: unknown) {
-  const code = getErrorCode(error)
-  return code === 20005 || code === '20005' || code === 403 || code === '403'
-}
-
-async function putWithCsrf<T>(url: string, payload: unknown, retry = true): Promise<T> {
-  try {
-    const csrf = await getAdminCsrf()
-    const response = await http.put(url, payload, {
-      headers: {
-        [csrf.headerName]: csrf.token,
-      },
-    })
-    return unwrapApiData<T>(response.data)
-  } catch (error) {
-    if (retry && isCsrfError(error)) {
-      return putWithCsrf<T>(url, payload, false)
-    }
-
-    throw new Error(getErrorMessage(error))
-  }
+function replaceId(path: string, id: string | number) {
+  return path.replace('{id}', encodeURIComponent(String(id)))
 }
 
 export async function getAdminSiteConfig() {
@@ -100,7 +235,7 @@ export async function updateAdminSiteConfig(payload: {
   logoLightMediaId: number | null
   logoDarkMediaId: number | null
 }) {
-  return putWithCsrf<AdminSiteConfig>('/admin/api/site/config', payload)
+  return requestAdminWithCsrf<AdminSiteConfig>('put', '/admin/api/site/config', payload)
 }
 
 export async function getAdminHomeBanner() {
@@ -116,5 +251,50 @@ export async function updateAdminHomeBanner(payload: {
   primaryButton: HomeBannerButton
   secondaryButton: HomeBannerButton
 }) {
-  return putWithCsrf<AdminHomeBanner>('/admin/api/site/home-banner', payload)
+  return requestAdminWithCsrf<AdminHomeBanner>('put', '/admin/api/site/home-banner', payload)
+}
+
+export async function getAdminSiteModuleData(config: AdminSiteModuleConfig) {
+  const response = await http.get(config.listPath)
+  return unwrapApiData<unknown>(response.data)
+}
+
+export async function createAdminSiteModuleItem(config: AdminSiteModuleConfig, payload: unknown) {
+  if (!config.createPath) throw new Error('当前模块不支持新增')
+  return requestAdminWithCsrf<unknown>('post', config.createPath, payload)
+}
+
+export async function updateAdminSiteModuleItem(
+  config: AdminSiteModuleConfig,
+  id: string | number | null,
+  payload: unknown,
+) {
+  if (!config.updatePath) throw new Error('当前模块不支持编辑')
+  const path = config.updatePath.includes('{id}')
+    ? replaceId(config.updatePath, id ?? '')
+    : config.updatePath
+  return requestAdminWithCsrf<unknown>('put', path, payload)
+}
+
+export async function deleteAdminSiteModuleItem(
+  config: AdminSiteModuleConfig,
+  id: string | number,
+  payload?: unknown,
+) {
+  if (!config.deletePath) throw new Error('当前模块不支持删除')
+  return requestAdminWithCsrf<unknown>('delete', replaceId(config.deletePath, id), payload)
+}
+
+export async function reorderAdminSiteModule(config: AdminSiteModuleConfig, payload: unknown) {
+  if (!config.reorderPath) throw new Error('当前模块不支持排序')
+  return requestAdminWithCsrf<unknown>(config.orderMethod ?? 'post', config.reorderPath, payload)
+}
+
+export async function updateAdminSiteModuleVisibility(
+  config: AdminSiteModuleConfig,
+  id: string | number,
+  payload: unknown,
+) {
+  if (!config.visibilityPath) throw new Error('当前模块不支持可见性更新')
+  return requestAdminWithCsrf<unknown>('put', replaceId(config.visibilityPath, id), payload)
 }

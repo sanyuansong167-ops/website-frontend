@@ -9,46 +9,45 @@
     </router-link>
 
     <nav class="admin-sidebar__nav" aria-label="后台导航">
-      <router-link class="admin-sidebar__item" to="/admin">
-        <span class="admin-sidebar__icon">⌂</span>
-        <span>工作台</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/media">
-        <span class="admin-sidebar__icon">↑</span>
-        <span>媒体上传</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/site-config">
-        <span class="admin-sidebar__icon">◆</span>
-        <span>站点配置</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/home-banner">
-        <span class="admin-sidebar__icon">▣</span>
-        <span>首页 Banner</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/products">
-        <span class="admin-sidebar__icon">□</span>
-        <span>产品管理</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/cases">
-        <span class="admin-sidebar__icon">▤</span>
-        <span>案例管理</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/contact-info">
-        <span class="admin-sidebar__icon">☎</span>
-        <span>联系方式</span>
-      </router-link>
-      <router-link class="admin-sidebar__item" to="/admin/leads">
-        <span class="admin-sidebar__icon">◇</span>
-        <span>线索管理</span>
+      <router-link v-for="item in navItems" :key="item.to" class="admin-sidebar__item" :to="item.to">
+        <span class="admin-sidebar__icon">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
       </router-link>
     </nav>
 
     <div class="admin-sidebar__note">
-      <span>Task 7</span>
-      <strong>联系方式与线索管理</strong>
+      <span>API Integration</span>
+      <strong>Admin / Portal 接口分离，写操作统一 CSRF</strong>
     </div>
   </aside>
 </template>
+
+<script setup>
+const navItems = [
+  { to: '/admin', icon: '⌂', label: '工作台' },
+  { to: '/admin/media', icon: '↥', label: '媒体上传' },
+  { to: '/admin/site-config', icon: '◆', label: '站点配置' },
+  { to: '/admin/home-banner', icon: '▣', label: '首页 Banner' },
+  { to: '/admin/site-modules/home-metrics', icon: '1', label: '首页指标' },
+  { to: '/admin/site-modules/navigation', icon: '2', label: '导航菜单' },
+  { to: '/admin/site-modules/ai-cards', icon: '3', label: 'AI 卡片' },
+  { to: '/admin/site-modules/capability-categories', icon: '4', label: '能力底座' },
+  { to: '/admin/site-modules/client-logos', icon: '5', label: '客户 Logo' },
+  { to: '/admin/site-modules/strength-metrics', icon: '6', label: '实力指标' },
+  { to: '/admin/site-modules/partner-universities', icon: '7', label: '合作高校' },
+  { to: '/admin/site-modules/research-directions', icon: '8', label: '研发方向' },
+  { to: '/admin/site-modules/timeline-events', icon: '9', label: '时间线' },
+  { to: '/admin/site-modules/value-cards', icon: 'V', label: '价值卡片' },
+  { to: '/admin/site-modules/promise-content', icon: 'P', label: '承诺内容' },
+  { to: '/admin/site-modules/promise-tags', icon: 'T', label: '承诺标签' },
+  { to: '/admin/site-modules/industry-solutions', icon: 'I', label: '行业方案' },
+  { to: '/admin/site-modules/cooperation-direction-tags', icon: 'C', label: '合作方向' },
+  { to: '/admin/products', icon: '▤', label: '产品管理' },
+  { to: '/admin/cases', icon: '▥', label: '案例管理' },
+  { to: '/admin/contact-info', icon: '☎', label: '联系方式' },
+  { to: '/admin/leads', icon: '●', label: '线索管理' },
+]
+</script>
 
 <style scoped>
 .admin-sidebar {
@@ -101,13 +100,16 @@
   display: grid;
   gap: 6px;
   margin-top: 28px;
+  max-height: calc(100vh - 210px);
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .admin-sidebar__item {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 42px;
+  min-height: 38px;
   padding: 0 12px;
   border-radius: 8px;
   color: #cbd5e1;

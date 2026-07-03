@@ -1,5 +1,5 @@
-import http, { getApiMessage, unwrapApiData } from '../../api/http'
-import { getAdminCsrf } from './adminAuth'
+import http, { unwrapApiData } from '../../api/http'
+import { requestAdminWithCsrf } from './adminAuth'
 
 export type AdminProduct = {
   id: number
@@ -37,48 +37,6 @@ export type ProductPayload = {
   version?: number
 }
 
-function getErrorCode(error: unknown) {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { status?: number; data?: unknown }; code?: unknown }
-    const data = source.response?.data
-
-    if (data && typeof data === 'object' && 'code' in data) {
-      return (data as { code?: unknown }).code
-    }
-
-    return source.response?.status ?? source.code
-  }
-
-  return undefined
-}
-
-function getErrorMessage(error: unknown, fallback = '请求失败') {
-  if (error && typeof error === 'object') {
-    const source = error as { response?: { data?: unknown }; message?: string }
-    return getApiMessage(source.response?.data, source.message || fallback)
-  }
-
-  return fallback
-}
-
-function isCsrfError(error: unknown) {
-  const code = getErrorCode(error)
-  return code === 20005 || code === '20005' || code === 403 || code === '403'
-}
-
-async function withCsrf<T>(request: (headers: Record<string, string>) => Promise<T>, retry = true): Promise<T> {
-  try {
-    const csrf = await getAdminCsrf()
-    return await request({ [csrf.headerName]: csrf.token })
-  } catch (error) {
-    if (retry && isCsrfError(error)) {
-      return withCsrf<T>(request, false)
-    }
-
-    throw new Error(getErrorMessage(error))
-  }
-}
-
 export async function getAdminProducts(params: { pageNo?: number; pageSize?: number } = {}) {
   const response = await http.get('/admin/api/products', {
     params: {
@@ -90,32 +48,17 @@ export async function getAdminProducts(params: { pageNo?: number; pageSize?: num
 }
 
 export async function createAdminProduct(payload: ProductPayload) {
-  return withCsrf<number>(async (headers) => {
-    const response = await http.post('/admin/api/products', payload, { headers })
-    return unwrapApiData<number>(response.data)
-  })
+  return requestAdminWithCsrf<number>('post', '/admin/api/products', payload)
 }
 
 export async function updateAdminProduct(id: number, payload: ProductPayload & { version: number }) {
-  return withCsrf<void>(async (headers) => {
-    const response = await http.put(`/admin/api/products/${id}`, payload, { headers })
-    return unwrapApiData<void>(response.data)
-  })
+  return requestAdminWithCsrf<void>('put', `/admin/api/products/${id}`, payload)
 }
 
 export async function deleteAdminProduct(id: number, version: number) {
-  return withCsrf<void>(async (headers) => {
-    const response = await http.delete(`/admin/api/products/${id}`, {
-      headers,
-      params: { version },
-    })
-    return unwrapApiData<void>(response.data)
-  })
+  return requestAdminWithCsrf<void>('delete', `/admin/api/products/${id}`, undefined, { params: { version } })
 }
 
 export async function sortAdminProducts(sortItems: { id: number; sortOrder: number }[]) {
-  return withCsrf<void>(async (headers) => {
-    const response = await http.put('/admin/api/products/batch-sort', sortItems, { headers })
-    return unwrapApiData<void>(response.data)
-  })
+  return requestAdminWithCsrf<void>('put', '/admin/api/products/batch-sort', sortItems)
 }

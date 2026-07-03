@@ -100,3 +100,9 @@ Mock 数据不得作为后端字段事实来源。后端字段以 `接口文档(
 - 如果当前页面需要旧字段，必须通过 API 层或适配层转换，不得把旧字段写成后端事实。
 - 接口失败兜底可以继续使用 `src/data/site.js`，但应明确它是前端兜底数据，不是后端契约。
 - 修改 `src/data/site.js` 时，应同步复核 `API字段映射表.md` 和 `联调说明.md`，避免 Mock 字段、API 映射字段、页面使用字段再次分散。
+# 2026-07-02 Mock 使用边界更新
+
+- 页面运行时可保留 `src/data/site.js` 作为展示兜底，避免后端临时不可用时首页白屏。
+- 联调、验收和 `tests/api-test.js` 禁止使用 mock 判定成功，必须以真实 `/portal/api/**` 和 `/admin/api/**` 响应为准。
+- 新增或修改 mock 字段时，应优先兼容真实后端字段：Lead 使用 `name/company/email/phone/demandDescription`，产品使用 `name/subTitle/abstractText/statusTag/logoUrl/detailLink`，案例使用 `logoUrl/summary/keywords`。
+- 后台管理页不依赖 mock，site 子模块通过通用 JSON 表单直接调用真实 Admin Controller。
