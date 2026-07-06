@@ -1,6 +1,8 @@
 import http, { unwrapApiData } from '../../api/http'
 import { requestAdminWithCsrf } from './adminAuth'
 
+export type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
+
 export type AdminProduct = {
   id: number
   name: string
@@ -12,6 +14,7 @@ export type AdminProduct = {
   subTitle: string
   abstractText: string
   statusTag: string
+  status: ContentStatus | string
   detailLink: string
   visible: number
   sortOrder: number
@@ -31,6 +34,7 @@ export type ProductPayload = {
   subTitle: string
   abstractText: string
   statusTag: string
+  status: ContentStatus
   detailLink: string
   visible: number
   sortOrder: number | null
@@ -61,4 +65,8 @@ export async function deleteAdminProduct(id: number, version: number) {
 
 export async function sortAdminProducts(sortItems: { id: number; sortOrder: number }[]) {
   return requestAdminWithCsrf<void>('put', '/admin/api/products/batch-sort', sortItems)
+}
+
+export async function updateAdminProductStatus(id: number, status: ContentStatus, version: number) {
+  return requestAdminWithCsrf<AdminProduct>('put', `/admin/api/products/${id}/status`, { status, version })
 }

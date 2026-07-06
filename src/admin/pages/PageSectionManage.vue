@@ -66,6 +66,9 @@
             <td>
               <div class="page-section__actions">
                 <button type="button" class="page-section__ghost" @click="openEdit(item)">编辑</button>
+                <button type="button" class="page-section__ghost" @click="changeStatus(item, 'DRAFT')">草稿</button>
+                <button type="button" class="page-section__ghost" @click="changeStatus(item, 'PUBLISHED')">发布</button>
+                <button type="button" class="page-section__ghost" @click="changeStatus(item, 'OFFLINE')">下线</button>
                 <button type="button" class="page-section__danger" @click="deleteSection(item)">删除</button>
               </div>
             </td>
@@ -156,6 +159,7 @@ import {
   type AdminPageSection,
   type PageSectionPayload,
   updateAdminPageSection,
+  updateAdminPageSectionStatus,
   updateAdminPageSectionVisibility,
 } from '../api/adminPageSection'
 
@@ -298,6 +302,17 @@ async function toggleVisibility(item: AdminPageSection) {
     await loadData()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '更新显示状态失败'
+  }
+}
+
+async function changeStatus(item: AdminPageSection, status: 'DRAFT' | 'PUBLISHED' | 'OFFLINE') {
+  errorMessage.value = ''
+  try {
+    await updateAdminPageSectionStatus(item.id, status, item.version)
+    message.value = `发布状态已更新为${statusLabel(status)}`
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '更新发布状态失败'
   }
 }
 

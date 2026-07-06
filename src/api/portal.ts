@@ -52,6 +52,8 @@ type PortalProductDetailResponse = {
   visible?: unknown
   status?: unknown
   updatedAt?: unknown
+  relatedCases?: unknown
+  relatedIndustrySolutions?: unknown
 }
 
 export type PortalProductDetail = {
@@ -66,6 +68,8 @@ export type PortalProductDetail = {
   visible: boolean
   status: string
   updatedAt: string
+  relatedCases: PortalCase[]
+  relatedIndustrySolutions: PortalIndustrySolution[]
 }
 
 type PortalCaseResponse = {
@@ -99,8 +103,11 @@ type PortalCaseDetailResponse = {
   coverMediaId?: string | number | null
   coverUrl?: unknown
   images?: unknown
+  status?: unknown
   seoTitle?: unknown
   seoDescription?: unknown
+  recommendedCases?: unknown
+  relatedProducts?: unknown
 }
 
 export type PortalCaseDetail = {
@@ -115,8 +122,11 @@ export type PortalCaseDetail = {
   coverMediaId: string | number | null
   coverUrl: string
   images: string[]
+  status: string
   seoTitle: string
   seoDescription: string
+  recommendedCases: PortalCase[]
+  relatedProducts: PortalProduct[]
 }
 
 type PortalContactInfoResponse = {
@@ -135,6 +145,7 @@ type PortalContactInfo = {
 }
 
 type PortalIndustrySolutionResponse = {
+  id?: string | number
   name?: unknown
   iconUrl?: unknown
   description?: unknown
@@ -142,6 +153,7 @@ type PortalIndustrySolutionResponse = {
 }
 
 type PortalIndustrySolution = {
+  id: string | number
   name: string
   iconUrl: string
   description: string
@@ -429,6 +441,8 @@ function mapPortalProductDetail(data: unknown): PortalProductDetail {
     visible: item.visible === true || item.visible === 1 || item.visible === '1' || item.visible === 'true',
     status: asString(item.status),
     updatedAt: asString(item.updatedAt),
+    relatedCases: mapPortalCaseList(item.relatedCases),
+    relatedIndustrySolutions: mapPortalIndustrySolutionList(item.relatedIndustrySolutions),
   }
 }
 
@@ -463,8 +477,11 @@ function mapPortalCaseDetail(data: unknown): PortalCaseDetail {
     coverMediaId: item.coverMediaId ?? null,
     coverUrl: asString(item.coverUrl),
     images: asStringArray(item.images),
+    status: asString(item.status),
     seoTitle: asString(item.seoTitle),
     seoDescription: asString(item.seoDescription),
+    recommendedCases: mapPortalCaseList(item.recommendedCases),
+    relatedProducts: mapPortalProductList(item.relatedProducts),
   }
 }
 
@@ -486,6 +503,7 @@ function mapPortalContactInfo(data: unknown): PortalContactInfo {
 
 function mapPortalIndustrySolution(item: PortalIndustrySolutionResponse): PortalIndustrySolution {
   return {
+    id: item.id ?? '',
     name: asString(item.name),
     iconUrl: asString(item.iconUrl),
     description: asString(item.description),
@@ -497,6 +515,18 @@ function mapPortalIndustrySolutions(data: unknown) {
   return assertArray(data, 'getPortalIndustrySolutions', '/portal/api/industry-solutions').map((item) =>
     mapPortalIndustrySolution(isRecord(item) ? item : {}),
   )
+}
+
+function mapPortalProductList(data: unknown) {
+  return Array.isArray(data) ? data.map((item) => mapPortalProduct(isRecord(item) ? item : {})) : []
+}
+
+function mapPortalCaseList(data: unknown) {
+  return Array.isArray(data) ? data.map((item) => mapPortalCase(isRecord(item) ? item : {})) : []
+}
+
+function mapPortalIndustrySolutionList(data: unknown) {
+  return Array.isArray(data) ? data.map((item) => mapPortalIndustrySolution(isRecord(item) ? item : {})) : []
 }
 
 function mapPortalCooperationDirectionTag(

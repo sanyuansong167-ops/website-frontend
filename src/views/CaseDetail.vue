@@ -15,19 +15,55 @@
           未找到对应案例，可能已下线或链接已失效。
         </div>
 
-        <article v-else-if="caseDetail" class="case-detail">
-          <img v-if="coverImage" :src="coverImage" :alt="caseDetail.title">
-          <div>
-            <h2>{{ caseDetail.title }}</h2>
-            <b>{{ caseMeta }}</b>
-            <p>{{ caseDetail.background }}</p>
-            <span v-if="caseDetail.industry">{{ caseDetail.industry }}</span>
-            <span v-if="caseDetail.customerName">{{ caseDetail.customerName }}</span>
-            <blockquote>{{ caseDetail.result || caseDetail.solution || caseDetail.background }}</blockquote>
-            <div v-if="richContent" class="rich-content" v-html="richContent"></div>
-            <div v-else class="detail-empty">暂无更多详情内容。</div>
-          </div>
-        </article>
+        <template v-else-if="caseDetail">
+          <article class="case-detail">
+            <img v-if="coverImage" :src="coverImage" :alt="caseDetail.title">
+            <div>
+              <h2>{{ caseDetail.title }}</h2>
+              <b>{{ caseMeta }}</b>
+              <p>{{ caseDetail.background }}</p>
+              <span v-if="caseDetail.industry">{{ caseDetail.industry }}</span>
+              <span v-if="caseDetail.customerName">{{ caseDetail.customerName }}</span>
+              <blockquote>{{ caseDetail.result || caseDetail.solution || caseDetail.background }}</blockquote>
+              <div v-if="richContent" class="rich-content" v-html="richContent"></div>
+              <div v-else class="detail-empty">暂无更多详情内容。</div>
+            </div>
+          </article>
+
+          <section v-if="hasCaseRecommendations" class="recommendation-section">
+            <div v-if="relatedProducts.length" class="recommendation-group">
+              <h3>相关产品</h3>
+              <div class="recommendation-grid">
+                <RouterLink
+                  v-for="item in relatedProducts"
+                  :key="`product-${item.id}`"
+                  class="recommendation-card"
+                  :to="`/product/${item.id}`"
+                >
+                  <img v-if="item.logoUrl" :src="item.logoUrl" :alt="item.title">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.desc }}</p>
+                </RouterLink>
+              </div>
+            </div>
+
+            <div v-if="recommendedCases.length" class="recommendation-group">
+              <h3>相关推荐案例</h3>
+              <div class="recommendation-grid">
+                <RouterLink
+                  v-for="item in recommendedCases"
+                  :key="`case-${item.id}`"
+                  class="recommendation-card"
+                  :to="`/case/${item.id}`"
+                >
+                  <img v-if="item.img" :src="item.img" :alt="item.title">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.desc }}</p>
+                </RouterLink>
+              </div>
+            </div>
+          </section>
+        </template>
 
         <div v-else class="detail-state">暂无案例详情。</div>
       </div>
@@ -60,6 +96,9 @@ const caseMeta = computed(() => {
   return parts.join(' / ')
 })
 const richContent = computed(() => caseDetail.value?.content || fallbackContent(caseDetail.value?.background))
+const relatedProducts = computed(() => caseDetail.value?.relatedProducts || [])
+const recommendedCases = computed(() => caseDetail.value?.recommendedCases || [])
+const hasCaseRecommendations = computed(() => relatedProducts.value.length > 0 || recommendedCases.value.length > 0)
 
 async function resolveCaseId() {
   const id = route.params.id
@@ -156,5 +195,60 @@ watch(() => route.params.id, loadCase)
 .detail-empty {
   margin-top: 22px;
   color: #94a3b8;
+}
+
+.recommendation-section {
+  margin-top: 40px;
+  display: grid;
+  gap: 28px;
+}
+
+.recommendation-group h3 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.recommendation-card {
+  display: grid;
+  gap: 10px;
+  min-height: 100%;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  background: #ffffff;
+}
+
+.recommendation-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.recommendation-card strong {
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.recommendation-card p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+@media (max-width: 760px) {
+  .recommendation-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

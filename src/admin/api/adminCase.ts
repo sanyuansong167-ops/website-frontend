@@ -1,6 +1,8 @@
 import http, { unwrapApiData } from '../../api/http'
 import { requestAdminWithCsrf } from './adminAuth'
 
+export type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
+
 export type AdminCase = {
   id: number
   title: string
@@ -9,6 +11,7 @@ export type AdminCase = {
   summary: string
   keywords: string[]
   visible: boolean
+  status: ContentStatus | string
   sortOrder: number
   version: number
   updatedAt?: string
@@ -27,6 +30,7 @@ export type CasePayload = {
   summary: string
   keywords: string[]
   visible: boolean
+  status: ContentStatus
   version?: number
 }
 
@@ -54,4 +58,8 @@ export async function deleteAdminCase(id: number, version: number) {
 
 export async function reorderAdminCases(orderedIds: number[]) {
   return requestAdminWithCsrf<AdminCase[]>('post', '/admin/api/cases/reorder', { orderedIds })
+}
+
+export async function updateAdminCaseStatus(id: number, status: ContentStatus, version: number) {
+  return requestAdminWithCsrf<AdminCase>('put', `/admin/api/cases/${id}/status`, { status, version })
 }

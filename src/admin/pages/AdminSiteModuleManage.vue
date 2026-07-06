@@ -27,17 +27,68 @@
         <span>按配置表单管理</span>
       </div>
 
+      <div v-if="isPhase2EnhancedModule" class="site-module__ops">
+        <label>
+          搜索
+          <input v-model.trim="aiFilters.keyword" :placeholder="opsSearchPlaceholder" @input="clearAiSelection" />
+        </label>
+        <label>
+          显示状态
+          <select v-model="aiFilters.visible" @change="clearAiSelection">
+            <option value="">全部</option>
+            <option value="visible">显示</option>
+            <option value="hidden">隐藏</option>
+          </select>
+        </label>
+        <div class="site-module__batch-actions">
+          <button type="button" :disabled="batchBusy || !selectedAiRows.length" @click="batchSetAiVisible(true)">
+            {{ batchBusy ? '处理中...' : '批量显示' }}
+          </button>
+          <button type="button" :disabled="batchBusy || !selectedAiRows.length" @click="batchSetAiVisible(false)">
+            批量隐藏
+          </button>
+          <button type="button" class="site-module__danger-button" :disabled="batchBusy || !selectedAiRows.length" @click="batchDeleteAiCards">
+            批量删除
+          </button>
+          <button type="button" class="site-module__ghost-button" :disabled="batchBusy || !selectedAiRows.length" @click="clearAiSelection">
+            清空选择
+          </button>
+        </div>
+        <small>已选择 {{ selectedAiRows.length }} 条</small>
+      </div>
+
+      <div v-if="inlineEdit.active" class="site-module__inline-editor">
+        <label>
+          {{ inlineEdit.field === 'sortOrder' ? '排序' : '名称' }}
+          <input
+            v-model="inlineEdit.value"
+            :type="inlineEdit.field === 'sortOrder' ? 'number' : 'text'"
+            :disabled="inlineEdit.saving"
+            @keyup.enter="scheduleInlineSave"
+            @blur="scheduleInlineSave"
+          />
+        </label>
+        <span>{{ inlineEdit.saving ? 'Saving...' : '按 Enter 或移出输入框保存' }}</span>
+      </div>
+
       <p v-if="message" class="site-module__message">{{ message }}</p>
       <p v-if="errorMessage" class="site-module__error">{{ errorMessage }}</p>
 
       <SiteModuleList
         :config="formConfig"
-        :list-data="rows"
-        :loading="saving || loading"
+        :list-data="displayRows"
+        :loading="saving || loading || batchBusy || inlineEdit.saving"
+        :selectable="isPhase2EnhancedModule"
+        :selected-ids="selectedAiIds"
+        :inline-editable="isPhase2EnhancedModule"
+        :inline-fields="inlineEditableFields"
         @edit="openEditForm"
         @delete="deleteManagedItem"
         @toggle-visibility="toggleManagedVisibility"
         @reorder="reorderManagedItems"
+        @select-row="toggleAiSelection"
+        @select-all="toggleAllAiSelection"
+        @inline-start="startInlineEdit"
       />
 
       <SiteModuleForm
@@ -149,6 +200,20 @@ const errorMessage = ref('')
 const dialogOpen = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const dialogFormData = ref<Record<string, unknown>>({})
+const selectedAiIds = ref<string[]>([])
+const batchBusy = ref(false)
+let inlineSaveTimer: ReturnType<typeof setTimeout> | null = null
+const aiFilters = reactive({
+  keyword: '',
+  visible: '',
+})
+const inlineEdit = reactive({
+  active: false,
+  saving: false,
+  row: null as Record<string, unknown> | null,
+  field: '',
+  value: '',
+})
 const form = reactive({
   id: '',
   payload: '{}',
@@ -158,10 +223,36 @@ const form = reactive({
 
 const currentConfig = computed(() => getAdminSiteModuleConfig(selectedKey.value))
 const formConfig = computed(() => getSiteModuleFormConfig(selectedKey.value))
+const isAiCardsModule = computed(() => selectedKey.value === 'ai-cards')
+const isClientLogosModule = computed(() => selectedKey.value === 'client-logos')
+const isTimelineModule = computed(() => selectedKey.value === 'timeline-events')
+const isCapabilityModule = computed(() => selectedKey.value === 'capability-categories' || selectedKey.value === 'capability-items')
+const isStrengthMetricsModule = computed(() => selectedKey.value === 'strength-metrics')
+const isPhase2EnhancedModule = computed(
+  () =>
+    isAiCardsModule.value ||
+    isClientLogosModule.value ||
+    isTimelineModule.value ||
+    isCapabilityModule.value ||
+    isStrengthMetricsModule.value,
+)
+const opsSearchPlaceholder = computed(() => {
+  if (isClientLogosModule.value) return '输入客户名称或所属行业'
+  if (isTimelineModule.value) return '输入年份、标题或描述'
+  if (isCapabilityModule.value) return '输入分类、子项名称或分类 ID'
+  if (isStrengthMetricsModule.value) return '输入核心数值或业务标签'
+  return '输入名称、英文名或描述'
+})
+const inlineEditableFields = computed(() => {
+  if (isTimelineModule.value) return ['title']
+  if (isStrengthMetricsModule.value) return []
+  return ['name', 'sortOrder']
+})
 
 const rows = computed(() => {
   const data = rawData.value
   if (formConfig.value?.listMode === 'singleton') return isRecord(data) ? [data] : []
+  if (formConfig.value?.listMode === 'tree') return flattenTreeRows(Array.isArray(data) ? data.filter(isRecord) : [])
   if (formConfig.value?.listMode === 'tree-items') {
     const categories = Array.isArray(data) ? data.filter(isRecord) : []
     return categories.flatMap((category) => {
@@ -175,10 +266,43 @@ const rows = computed(() => {
   return []
 })
 
+const displayRows = computed(() => {
+  if (!isPhase2EnhancedModule.value) return rows.value
+  const keyword = aiFilters.keyword.trim().toLowerCase()
+  return rows.value.filter((row) => {
+    const matchesKeyword =
+      !keyword ||
+      String(row.name || '').toLowerCase().includes(keyword) ||
+      String(row.industry || '').toLowerCase().includes(keyword) ||
+      String(row.categoryId || '').toLowerCase().includes(keyword) ||
+      String(row.year || '').toLowerCase().includes(keyword) ||
+      String(row.title || '').toLowerCase().includes(keyword) ||
+      String(row.metricValue || '').toLowerCase().includes(keyword) ||
+      String(row.label || '').toLowerCase().includes(keyword) ||
+      String(row.englishName || '').toLowerCase().includes(keyword) ||
+      String(row.description || '').toLowerCase().includes(keyword)
+    const visible = row.visible !== false
+    const matchesVisible =
+      !aiFilters.visible ||
+      (aiFilters.visible === 'visible' && visible) ||
+      (aiFilters.visible === 'hidden' && !visible)
+    return matchesKeyword && matchesVisible
+  })
+})
+
+const selectedAiRows = computed(() => rows.value.filter((row, index) => selectedAiIds.value.includes(selectionKey(row, index))))
+
 const prettyData = computed(() => JSON.stringify(rawData.value ?? {}, null, 2))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function flattenTreeRows(items: Record<string, unknown>[], level = 0): Record<string, unknown>[] {
+  return items.flatMap((item) => {
+    const children = Array.isArray(item.children) ? item.children.filter(isRecord) : []
+    return [{ ...item, level }, ...flattenTreeRows(children, level + 1)]
+  })
 }
 
 function parseJson(value: string) {
@@ -223,6 +347,8 @@ function rowTitle(row: Record<string, unknown>, index: number) {
       row.siteTitle ||
       row.mainTitle ||
       row.tagText ||
+      row.treeName ||
+      row.categoryName ||
       row.content ||
       `第 ${index + 1} 条`,
   )
@@ -230,6 +356,25 @@ function rowTitle(row: Record<string, unknown>, index: number) {
 
 function rowKey(row: Record<string, unknown>, index: number) {
   return rowId(row) || `${selectedKey.value}-${index}`
+}
+
+function selectionKey(row: Record<string, unknown>, index = rows.value.indexOf(row)) {
+  return String(row[formConfig.value?.idField || 'id'] || row.id || `${selectedKey.value}-${index}`)
+}
+
+function clearAiSelection() {
+  selectedAiIds.value = []
+}
+
+function toggleAiSelection(row: Record<string, unknown>, selected: boolean) {
+  const key = selectionKey(row)
+  selectedAiIds.value = selected
+    ? Array.from(new Set([...selectedAiIds.value, key]))
+    : selectedAiIds.value.filter((item) => item !== key)
+}
+
+function toggleAllAiSelection(selected: boolean) {
+  selectedAiIds.value = selected ? displayRows.value.map((row, index) => selectionKey(row, index)) : []
 }
 
 function friendlyErrorMessage(error: unknown, fallback: string) {
@@ -327,6 +472,7 @@ async function loadData() {
       rawData.value = await getAdminSiteModuleData(currentConfig.value)
     }
     selectedRow.value = null
+    clearAiSelection()
     form.id = ''
     form.payload = currentConfig.value.singleton ? JSON.stringify(rawData.value ?? {}, null, 2) : '{}'
   } catch (error) {
@@ -351,6 +497,131 @@ async function mutate(action: () => Promise<unknown>, successText: string, failu
     return false
   } finally {
     saving.value = false
+  }
+}
+
+function cleanAiPayload(payload: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  )
+}
+
+function buildAiUpdatePayload(row: Record<string, unknown>, patch: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config) throw new Error('模块配置不存在')
+  const data = createFormData(config, row)
+  Object.assign(data, patch)
+  return cleanAiPayload(buildPayloadFromData(config, data, true))
+}
+
+async function updateAiRow(row: Record<string, unknown>, patch: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config?.api.update) throw new Error('更新接口不存在')
+  const id = managedRowId(row, config)
+  if (!id) throw new Error('记录不存在')
+  return requestAdminWithCsrf('put', replaceId(config.api.update, id), buildAiUpdatePayload(row, patch))
+}
+
+async function batchSetAiVisible(visible: boolean) {
+  await runAiBatch(
+    selectedAiRows.value,
+    (row) => updateAiRow(row, { visible }),
+    visible ? '显示' : '隐藏',
+  )
+}
+
+async function batchDeleteAiCards() {
+  const rowsToDelete = [...selectedAiRows.value]
+  if (!rowsToDelete.length) return
+  if (!window.confirm(`已选择 ${rowsToDelete.length} 条记录，是否确认删除？\n删除后无法恢复`)) return
+  await runAiBatch(rowsToDelete, deleteAiRow, '删除')
+}
+
+async function deleteAiRow(row: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config?.api.delete) throw new Error('删除接口不存在')
+  const id = managedRowId(row, config)
+  if (!id) throw new Error('记录不存在')
+  const path = `${replaceId(config.api.delete, id)}?version=${encodeURIComponent(String(managedRowVersion(row, config)))}`
+  return requestAdminWithCsrf('delete', path)
+}
+
+async function runAiBatch(
+  targetRows: Record<string, unknown>[],
+  action: (row: Record<string, unknown>) => Promise<unknown>,
+  actionLabel: string,
+) {
+  if (!targetRows.length) return
+  batchBusy.value = true
+  message.value = ''
+  errorMessage.value = ''
+  let successCount = 0
+  let failureCount = 0
+
+  for (const row of targetRows) {
+    try {
+      await action(row)
+      successCount += 1
+    } catch (error) {
+      failureCount += 1
+      console.warn(`[${currentConfig.value?.key || 'site-module'} batch operation failed]`, error)
+    }
+  }
+
+  message.value = `${successCount} 条记录已${actionLabel}${failureCount ? `，失败 ${failureCount} 条` : ''}`
+  if (failureCount) errorMessage.value = `失败 ${failureCount} 条，请稍后重试`
+  clearAiSelection()
+  batchBusy.value = false
+  await loadData()
+}
+
+function startInlineEdit(row: Record<string, unknown>, field: string) {
+  if (!isPhase2EnhancedModule.value || !inlineEditableFields.value.includes(field) || inlineEdit.saving) return
+  inlineEdit.active = true
+  inlineEdit.row = row
+  inlineEdit.field = field
+  inlineEdit.value = String(row[field] ?? '')
+  errorMessage.value = ''
+}
+
+function scheduleInlineSave() {
+  if (!inlineEdit.active || inlineEdit.saving) return
+  if (inlineSaveTimer) clearTimeout(inlineSaveTimer)
+  inlineSaveTimer = setTimeout(() => {
+    void saveInlineEdit()
+  }, 300)
+}
+
+async function saveInlineEdit() {
+  if (!inlineEdit.row || !inlineEdit.field) return
+  const field = inlineEdit.field
+  const rawValue = inlineEdit.value.trim()
+  const value = field === 'sortOrder' ? Number(rawValue) : rawValue
+  if ((field === 'name' || field === 'title') && !rawValue) {
+    errorMessage.value = '保存失败，请稍后重试'
+    return
+  }
+  if (field === 'sortOrder' && !Number.isFinite(value)) {
+    errorMessage.value = '保存失败，请稍后重试'
+    return
+  }
+
+  inlineEdit.saving = true
+  message.value = ''
+  errorMessage.value = ''
+  try {
+    await updateAiRow(inlineEdit.row, { [field]: value })
+    message.value = '保存成功'
+    inlineEdit.active = false
+    inlineEdit.row = null
+    inlineEdit.field = ''
+    inlineEdit.value = ''
+    await loadData()
+  } catch (error) {
+    console.warn(`[${currentConfig.value?.key || 'site-module'} inline edit failed]`, error)
+    errorMessage.value = '保存失败，请稍后重试'
+  } finally {
+    inlineEdit.saving = false
   }
 }
 
@@ -386,7 +657,10 @@ async function deleteManagedItem(row: Record<string, unknown>) {
     errorMessage.value = `未找到要删除的${config.title}`
     return
   }
-  if (!window.confirm(`确认删除“${rowTitle(row, 0)}”？`)) return
+  const confirmText = isPhase2EnhancedModule.value
+    ? `确认删除该内容？\n删除后无法恢复`
+    : `确认删除“${rowTitle(row, 0)}”？`
+  if (!window.confirm(confirmText)) return
 
   let path = replaceId(config.api.delete, id)
   if (config.delete.mode === 'query') {
@@ -486,6 +760,8 @@ watch(
   () => {
     syncSelectedKeyFromRoute()
     closeDialog()
+    clearAiSelection()
+    inlineEdit.active = false
     void loadData()
   },
 )
@@ -553,10 +829,48 @@ onMounted(() => {
 }
 
 .site-module__toolbar-actions,
-.site-module__actions {
+.site-module__actions,
+.site-module__batch-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.site-module__ops,
+.site-module__inline-editor {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #d9dee6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.site-module__ops label,
+.site-module__inline-editor label {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.site-module__ops select {
+  width: 160px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.site-module__ops small,
+.site-module__inline-editor span {
+  color: #64748b;
+  font-size: 13px;
 }
 
 .site-module__grid {
@@ -656,6 +970,10 @@ onMounted(() => {
   color: #334155 !important;
 }
 
+.site-module__danger-button {
+  background: #dc2626 !important;
+}
+
 .site-module__message,
 .site-module__error {
   margin: 0;
@@ -682,7 +1000,9 @@ onMounted(() => {
 
 @media (max-width: 720px) {
   .site-module__header,
-  .site-module__toolbar {
+  .site-module__toolbar,
+  .site-module__ops,
+  .site-module__inline-editor {
     align-items: stretch;
     flex-direction: column;
   }

@@ -9,17 +9,28 @@
       <table class="site-module-list__table">
         <thead>
           <tr>
+            <th v-if="selectable" class="site-module-list__select-col">
+              <input type="checkbox" :checked="allSelected" :disabled="loading || !listData.length" @change="toggleAll" />
+            </th>
             <th v-for="column in config.columns" :key="column.key">{{ column.label }}</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!listData.length">
-            <td :colspan="config.columns.length + 1" class="site-module-list__empty">
+            <td :colspan="config.columns.length + 1 + (selectable ? 1 : 0)" class="site-module-list__empty">
               {{ config.emptyText }}
             </td>
           </tr>
           <tr v-for="(row, index) in listData" :key="rowKey(row, index)">
+            <td v-if="selectable" class="site-module-list__select-col">
+              <input
+                type="checkbox"
+                :checked="selectedIdsSafe.includes(rowKey(row, index))"
+                :disabled="loading"
+                @change="$emit('selectRow', row, !selectedIdsSafe.includes(rowKey(row, index)))"
+              />
+            </td>
             <td v-for="column in config.columns" :key="column.key" :class="cellClass(column.type)">
               <template v-if="column.type === 'media'">
                 <div class="site-module-list__media">
@@ -43,10 +54,24 @@
                 {{ formatDate(row[column.key]) }}
               </template>
               <template v-else-if="column.type === 'sort'">
-                {{ row[column.key] ?? index + 1 }}
+                <span
+                  v-if="inlineEditable && inlineFieldsSafe.includes(column.key)"
+                  class="site-module-list__inline"
+                  @click="$emit('inlineStart', row, column.key)"
+                >
+                  {{ row[column.key] ?? index + 1 }}
+                </span>
+                <span v-else>{{ row[column.key] ?? index + 1 }}</span>
               </template>
               <template v-else>
-                {{ row[column.key] || '-' }}
+                <span
+                  v-if="inlineEditable && inlineFieldsSafe.includes(column.key)"
+                  class="site-module-list__inline"
+                  @click="$emit('inlineStart', row, column.key)"
+                >
+                  {{ row[column.key] || '-' }}
+                </span>
+                <span v-else>{{ row[column.key] || '-' }}</span>
               </template>
             </td>
             <td>
@@ -87,20 +112,36 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { SiteModuleColumnType, SiteModuleFormConfig } from '../config/adminSiteModuleFormConfig'
 
 const props = defineProps<{
   config: SiteModuleFormConfig
   listData: Record<string, unknown>[]
   loading?: boolean
+  selectable?: boolean
+  selectedIds?: string[]
+  inlineEditable?: boolean
+  inlineFields?: string[]
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   edit: [row: Record<string, unknown>]
   delete: [row: Record<string, unknown>]
   toggleVisibility: [row: Record<string, unknown>]
   reorder: [index: number, direction: -1 | 1]
+  selectRow: [row: Record<string, unknown>, selected: boolean]
+  selectAll: [selected: boolean]
+  inlineStart: [row: Record<string, unknown>, field: string]
 }>()
+
+const selectedIdsSafe = computed(() => props.selectedIds || [])
+const inlineFieldsSafe = computed(() => props.inlineFields || [])
+const allSelected = computed(() => props.listData.length > 0 && props.listData.every((row, index) => selectedIdsSafe.value.includes(rowKey(row, index))))
+
+function toggleAll() {
+  emit('selectAll', !allSelected.value)
+}
 
 function rowKey(row: Record<string, unknown>, index: number) {
   return String(row[props.config.idField] || row.id || `${props.config.key}-${index}`)
@@ -185,6 +226,11 @@ function formatDate(value: unknown) {
   font-size: 13px;
 }
 
+.site-module-list__select-col {
+  width: 42px;
+  text-align: center !important;
+}
+
 .site-module-list__empty {
   height: 120px;
   color: #64748b;
@@ -225,9 +271,24 @@ function formatDate(value: unknown) {
   font-weight: 700;
 }
 
-.site-module-list__switch input {
+.site-module-list__switch input,
+.site-module-list__select-col input {
   width: 18px;
   height: 18px;
+}
+
+.site-module-list__inline {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: text;
+}
+
+.site-module-list__inline:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .site-module-list__actions {

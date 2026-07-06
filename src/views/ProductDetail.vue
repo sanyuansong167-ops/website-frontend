@@ -15,21 +15,56 @@
           未找到对应产品，可能已下线或链接已失效。
         </div>
 
-        <article v-else-if="product" class="detail-card product-detail-card">
-          <div class="detail-media" v-if="product.coverUrl">
-            <img :src="product.coverUrl" :alt="product.title">
-          </div>
-          <div class="detail-main">
-            <div class="detail-meta">
-              <span v-if="product.status">{{ product.status }}</span>
-              <span v-if="product.updatedAt">更新于 {{ formatDate(product.updatedAt) }}</span>
+        <template v-else-if="product">
+          <article class="detail-card product-detail-card">
+            <div class="detail-media" v-if="product.coverUrl">
+              <img :src="product.coverUrl" :alt="product.title">
             </div>
-            <h2>{{ product.title }}</h2>
-            <p class="detail-desc">{{ product.description }}</p>
-            <div v-if="richContent" class="rich-content" v-html="richContent"></div>
-            <div v-else class="detail-empty">暂无更多详情内容。</div>
-          </div>
-        </article>
+            <div class="detail-main">
+              <div class="detail-meta">
+                <span v-if="product.status">{{ product.status }}</span>
+                <span v-if="product.updatedAt">更新于 {{ formatDate(product.updatedAt) }}</span>
+              </div>
+              <h2>{{ product.title }}</h2>
+              <p class="detail-desc">{{ product.description }}</p>
+              <div v-if="richContent" class="rich-content" v-html="richContent"></div>
+              <div v-else class="detail-empty">暂无更多详情内容。</div>
+            </div>
+          </article>
+
+          <section v-if="hasProductRecommendations" class="recommendation-section">
+            <div v-if="relatedCases.length" class="recommendation-group">
+              <h3>相关案例</h3>
+              <div class="recommendation-grid">
+                <RouterLink
+                  v-for="item in relatedCases"
+                  :key="`case-${item.id}`"
+                  class="recommendation-card"
+                  :to="`/case/${item.id}`"
+                >
+                  <img v-if="item.img" :src="item.img" :alt="item.title">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.desc }}</p>
+                </RouterLink>
+              </div>
+            </div>
+
+            <div v-if="relatedIndustrySolutions.length" class="recommendation-group">
+              <h3>相关行业方案</h3>
+              <div class="recommendation-grid">
+                <article
+                  v-for="item in relatedIndustrySolutions"
+                  :key="`industry-${item.id || item.name}`"
+                  class="recommendation-card"
+                >
+                  <img v-if="item.iconUrl" :src="item.iconUrl" :alt="item.name">
+                  <strong>{{ item.name }}</strong>
+                  <p>{{ item.description }}</p>
+                </article>
+              </div>
+            </div>
+          </section>
+        </template>
 
         <div v-else class="detail-state">暂无产品详情。</div>
       </div>
@@ -57,6 +92,9 @@ const product = ref(null)
 const pageTitle = computed(() => product.value?.title || '产品详情')
 const pageDescription = computed(() => product.value?.description || '真实贴合行业业务场景的云台生产产品。')
 const richContent = computed(() => product.value?.content || fallbackContent(product.value?.description))
+const relatedCases = computed(() => product.value?.relatedCases || [])
+const relatedIndustrySolutions = computed(() => product.value?.relatedIndustrySolutions || [])
+const hasProductRecommendations = computed(() => relatedCases.value.length > 0 || relatedIndustrySolutions.value.length > 0)
 
 async function resolveProductId() {
   const id = route.params.id
@@ -184,8 +222,61 @@ watch(() => route.params.id, loadProduct)
   color: #94a3b8;
 }
 
+.recommendation-section {
+  margin-top: 40px;
+  display: grid;
+  gap: 28px;
+}
+
+.recommendation-group h3 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.recommendation-card {
+  display: grid;
+  gap: 10px;
+  min-height: 100%;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  background: #ffffff;
+}
+
+.recommendation-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.recommendation-card strong {
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.recommendation-card p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
 @media (max-width: 760px) {
   .product-detail-card {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendation-grid {
     grid-template-columns: 1fr;
   }
 }

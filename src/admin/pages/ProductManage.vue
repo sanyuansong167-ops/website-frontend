@@ -41,6 +41,15 @@
           <input v-model.trim="form.statusTag" maxlength="64" :disabled="saving" />
         </label>
 
+        <label>
+          <span>内容状态</span>
+          <select v-model="form.status" :disabled="saving">
+            <option value="DRAFT">草稿</option>
+            <option value="PUBLISHED">已发布</option>
+            <option value="OFFLINE">已下线</option>
+          </select>
+        </label>
+
         <label class="product-manage__wide">
           <span>产品摘要 *</span>
           <textarea v-model.trim="form.abstractText" maxlength="512" :disabled="saving"></textarea>
@@ -122,11 +131,17 @@
               <span :class="['product-manage__status', product.visible === 1 ? 'is-visible' : '']">
                 {{ product.visible === 1 ? '展示' : '隐藏' }}
               </span>
+              <span :class="['product-manage__content-status', statusClass(product.status)]">
+                {{ statusLabel(product.status) }}
+              </span>
               <small>{{ product.statusTag || '无标签' }}</small>
             </td>
             <td>{{ product.detailLink || '-' }}</td>
             <td>
               <button type="button" @click="editProduct(product)">编辑</button>
+              <button type="button" @click="changeProductStatus(product, 'DRAFT')">草稿</button>
+              <button type="button" @click="changeProductStatus(product, 'PUBLISHED')">发布</button>
+              <button type="button" @click="changeProductStatus(product, 'OFFLINE')">下线</button>
               <button type="button" class="is-danger" @click="handleDelete(product)">删除</button>
             </td>
           </tr>
@@ -148,6 +163,7 @@ import {
   getAdminProducts,
   sortAdminProducts,
   updateAdminProduct,
+  updateAdminProductStatus,
 } from '../api/adminProduct'
 
 const pageSize = 100
@@ -173,6 +189,7 @@ function emptyForm() {
     subTitle: '',
     abstractText: '',
     statusTag: '',
+    status: 'DRAFT',
     detailLink: '',
     visible: 1,
     sortOrder: '',
@@ -209,6 +226,7 @@ function editProduct(product) {
     subTitle: product.subTitle || '',
     abstractText: product.abstractText || '',
     statusTag: product.statusTag || '',
+    status: product.status || 'DRAFT',
     detailLink: product.detailLink || '',
     visible: product.visible ?? 1,
     sortOrder: product.sortOrder ?? '',
@@ -225,6 +243,7 @@ function buildPayload() {
     subTitle: form.subTitle,
     abstractText: form.abstractText,
     statusTag: form.statusTag,
+    status: form.status,
     detailLink: form.detailLink,
     visible: Number(form.visible),
     sortOrder: toNumberOrNull(form.sortOrder),
@@ -323,6 +342,32 @@ async function handleSaveSort() {
   } finally {
     sortSaving.value = false
   }
+}
+
+async function changeProductStatus(product, status) {
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    await updateAdminProductStatus(product.id, status, product.version)
+    successMessage.value = `产品已${statusLabel(status)}`
+    await loadProducts()
+  } catch (error) {
+    errorMessage.value = error?.message || '更新发布状态失败'
+  }
+}
+
+function statusLabel(status) {
+  const labels = {
+    DRAFT: '草稿',
+    PUBLISHED: '发布',
+    OFFLINE: '下线',
+  }
+  return labels[status] || status || '-'
+}
+
+function statusClass(status) {
+  return String(status || 'DRAFT').toLowerCase()
 }
 
 onMounted(loadProducts)
@@ -506,6 +551,32 @@ onMounted(loadProducts)
 .product-manage__status.is-visible {
   background: #dcfce7;
   color: #047857;
+}
+
+.product-manage__content-status {
+  width: max-content;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.product-manage__content-status.draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.product-manage__content-status.published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.product-manage__content-status.offline {
+  background: #e2e8f0;
+  color: #475569;
 }
 
 .product-manage__empty,

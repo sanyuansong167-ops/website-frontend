@@ -100,6 +100,18 @@ export async function updateAdminPageSectionVisibility(id: number, visible: bool
   }
 }
 
+export async function updateAdminPageSectionStatus(id: number, status: PageSectionStatus, version: number) {
+  try {
+    return await requestAdminWithCsrf<AdminPageSection>(
+      'put',
+      `/admin/api/site/page-sections/${encodeURIComponent(String(id))}/status`,
+      { status, version },
+    )
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, '更新发布状态失败'))
+  }
+}
+
 export async function batchSortAdminPageSections(items: Array<{ id: number; sortOrder: number }>) {
   try {
     await requestAdminWithCsrf<void>('put', '/admin/api/site/page-sections/batch-sort', items)

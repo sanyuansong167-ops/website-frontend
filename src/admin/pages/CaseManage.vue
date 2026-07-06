@@ -53,6 +53,15 @@
             <option :value="false">隐藏</option>
           </select>
         </label>
+
+        <label>
+          <span>内容状态</span>
+          <select v-model="form.status" :disabled="saving">
+            <option value="DRAFT">草稿</option>
+            <option value="PUBLISHED">已发布</option>
+            <option value="OFFLINE">已下线</option>
+          </select>
+        </label>
       </div>
 
       <div class="case-manage__form-actions">
@@ -116,9 +125,15 @@
               <span :class="['case-manage__status', item.visible ? 'is-visible' : '']">
                 {{ item.visible ? '展示' : '隐藏' }}
               </span>
+              <span :class="['case-manage__content-status', statusClass(item.status)]">
+                {{ statusLabel(item.status) }}
+              </span>
             </td>
             <td>
               <button type="button" @click="editCase(item)">编辑</button>
+              <button type="button" @click="changeCaseStatus(item, 'DRAFT')">草稿</button>
+              <button type="button" @click="changeCaseStatus(item, 'PUBLISHED')">发布</button>
+              <button type="button" @click="changeCaseStatus(item, 'OFFLINE')">下线</button>
               <button type="button" class="is-danger" @click="handleDelete(item)">删除</button>
             </td>
           </tr>
@@ -140,6 +155,7 @@ import {
   getAdminCases,
   reorderAdminCases,
   updateAdminCase,
+  updateAdminCaseStatus,
 } from '../api/adminCase'
 
 const pageSize = 100
@@ -165,6 +181,7 @@ function emptyForm() {
     summary: '',
     keywordsText: '',
     visible: true,
+    status: 'DRAFT',
     version: 0,
   }
 }
@@ -209,6 +226,7 @@ function editCase(item) {
     summary: item.summary || '',
     keywordsText: Array.isArray(item.keywords) ? item.keywords.join('，') : '',
     visible: item.visible ?? true,
+    status: item.status || 'DRAFT',
     version: item.version ?? 0,
   })
   errorMessage.value = ''
@@ -222,6 +240,7 @@ function buildPayload() {
     summary: form.summary,
     keywords: parseKeywords(form.keywordsText),
     visible: Boolean(form.visible),
+    status: form.status,
   }
 }
 
@@ -331,6 +350,32 @@ async function handleSaveSort() {
   } finally {
     sortSaving.value = false
   }
+}
+
+async function changeCaseStatus(item, status) {
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    await updateAdminCaseStatus(item.id, status, item.version)
+    successMessage.value = `案例已${statusLabel(status)}`
+    await loadCases()
+  } catch (error) {
+    errorMessage.value = error?.message || '更新发布状态失败'
+  }
+}
+
+function statusLabel(status) {
+  const labels = {
+    DRAFT: '草稿',
+    PUBLISHED: '发布',
+    OFFLINE: '下线',
+  }
+  return labels[status] || status || '-'
+}
+
+function statusClass(status) {
+  return String(status || 'DRAFT').toLowerCase()
 }
 
 onMounted(loadCases)
@@ -531,6 +576,33 @@ onMounted(loadCases)
 .case-manage__status.is-visible {
   background: #dcfce7;
   color: #047857;
+}
+
+.case-manage__content-status {
+  display: inline-block;
+  width: max-content;
+  margin: 0 6px 6px 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.case-manage__content-status.draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.case-manage__content-status.published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.case-manage__content-status.offline {
+  background: #e2e8f0;
+  color: #475569;
 }
 
 .case-manage__empty,
