@@ -78,6 +78,16 @@
               <div class="site-module-list__actions">
                 <button v-if="config.api.update" type="button" @click="$emit('edit', row)">编辑</button>
                 <button
+                  v-for="action in config.customActions || []"
+                  :key="action.key"
+                  type="button"
+                  :class="{ 'site-module-list__danger': action.variant === 'danger', 'site-module-list__ghost': action.variant === 'ghost' }"
+                  :disabled="loading"
+                  @click="$emit('customAction', action.key, row)"
+                >
+                  {{ action.label }}
+                </button>
+                <button
                   v-if="config.reorder.enabled"
                   type="button"
                   :disabled="loading || index === 0"
@@ -133,6 +143,7 @@ const emit = defineEmits<{
   selectRow: [row: Record<string, unknown>, selected: boolean]
   selectAll: [selected: boolean]
   inlineStart: [row: Record<string, unknown>, field: string]
+  customAction: [actionKey: string, row: Record<string, unknown>]
 }>()
 
 const selectedIdsSafe = computed(() => props.selectedIds || [])
@@ -317,6 +328,12 @@ function formatDate(value: unknown) {
 
 .site-module-list__danger {
   background: #dc2626 !important;
+}
+
+.site-module-list__ghost {
+  border: 1px solid #cbd5e1 !important;
+  background: #fff !important;
+  color: #334155 !important;
 }
 
 @media (max-width: 720px) {

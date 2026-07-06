@@ -47,6 +47,7 @@ const navItems = [
   { to: '/admin/site-modules/content-relations', icon: 'R', label: '内容关联' },
   { to: '/admin/site-modules/content-references', icon: 'Q', label: '内容引用' },
   { to: '/admin/site-modules/business-registry', icon: 'B', label: '业务中心' },
+  { to: '/admin/site-modules/business-templates', icon: 'M', label: '业务模板' },
   { to: '/admin/site-modules/industry-solutions', icon: 'I', label: '行业方案' },
   { to: '/admin/site-modules/cooperation-direction-tags', icon: 'C', label: '合作方向' },
   { to: '/admin/products', icon: '▤', label: '产品管理' },

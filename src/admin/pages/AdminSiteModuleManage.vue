@@ -89,6 +89,7 @@
         @select-row="toggleAiSelection"
         @select-all="toggleAllAiSelection"
         @inline-start="startInlineEdit"
+        @custom-action="handleManagedCustomAction"
       />
 
       <SiteModuleForm
@@ -684,6 +685,59 @@ async function toggleManagedVisibility(row: Record<string, unknown>) {
     () => requestAdminWithCsrf('put', replaceId(config.api.update, managedRowId(row, config)), buildPayloadFromData(config, data, true)),
     data[config.visibility.field] ? '已显示' : '已隐藏',
     '保存失败，请稍后重试',
+  )
+}
+
+async function handleManagedCustomAction(actionKey: string, row: Record<string, unknown>) {
+  if (selectedKey.value !== 'business-templates') return
+  if (actionKey === 'copy-template') {
+    await copyBusinessTemplate(row)
+    return
+  }
+  if (actionKey === 'create-business-from-template') {
+    await createBusinessFromTemplate(row)
+  }
+}
+
+async function copyBusinessTemplate(row: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config) return
+  const id = managedRowId(row, config)
+  if (!id) {
+    errorMessage.value = '未找到要复制的模板'
+    return
+  }
+  if (!window.confirm(`确认复制模板“${rowTitle(row, 0)}”？`)) return
+  const version = encodeURIComponent(String(managedRowVersion(row, config)))
+  await mutate(
+    () => requestAdminWithCsrf('post', `/admin/api/business-templates/${encodeURIComponent(id)}/copy?version=${version}`),
+    '模板已复制',
+    '复制模板失败，请稍后重试',
+  )
+}
+
+async function createBusinessFromTemplate(row: Record<string, unknown>) {
+  const config = formConfig.value
+  if (!config) return
+  const id = managedRowId(row, config)
+  if (!id) {
+    errorMessage.value = '未找到要使用的模板'
+    return
+  }
+  const defaultCode = String(row.defaultBusinessCode || row.templateCode || '').trim()
+  const businessCode = window.prompt('请输入新业务编码', defaultCode)
+  if (businessCode === null) return
+  const defaultName = String(row.defaultBusinessName || row.templateName || '').trim()
+  const businessName = window.prompt('请输入新业务名称', defaultName)
+  if (businessName === null) return
+  await mutate(
+    () =>
+      requestAdminWithCsrf('post', `/admin/api/business-templates/${encodeURIComponent(id)}/create-business`, {
+        businessCode: businessCode.trim(),
+        businessName: businessName.trim(),
+      }),
+    '业务已创建',
+    '从模板创建业务失败，请稍后重试',
   )
 }
 

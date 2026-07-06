@@ -243,6 +243,16 @@ export const adminSiteModuleConfigs: AdminSiteModuleConfig[] = [
     deleteVersionQuery: true,
   },
   {
+    key: 'business-templates',
+    title: '业务模板',
+    listPath: '/admin/api/business-templates',
+    createPath: '/admin/api/business-templates',
+    updatePath: '/admin/api/business-templates/{id}',
+    deletePath: '/admin/api/business-templates/{id}',
+    reorderPath: '/admin/api/business-templates/reorder',
+    deleteVersionQuery: true,
+  },
+  {
     key: 'industry-solutions',
     title: '行业方案',
     listPath: '/admin/api/industry-solutions',

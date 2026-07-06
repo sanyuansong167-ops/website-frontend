@@ -25,6 +25,12 @@ export type SiteModuleColumnConfig = {
   mediaKey?: string
 }
 
+export type SiteModuleCustomActionConfig = {
+  key: string
+  label: string
+  variant?: 'primary' | 'danger' | 'ghost'
+}
+
 export type SiteModuleFormConfig = {
   key: string
   title: string
@@ -56,6 +62,7 @@ export type SiteModuleFormConfig = {
   }
   columns: SiteModuleColumnConfig[]
   fields: SiteModuleFieldConfig[]
+  customActions?: SiteModuleCustomActionConfig[]
 }
 
 function mediaValue(row: Record<string, unknown>, mediaKey: string, field: 'id' | 'url') {
@@ -772,6 +779,72 @@ export const siteModuleFormConfigs: Record<string, SiteModuleFormConfig> = {
       { key: 'sortOrder', label: '排序', type: 'number', disabled: true, submit: false, placeholder: '由上移/下移调整' },
       { key: 'description', label: '业务描述', type: 'textarea', maxLength: 512, placeholder: '填写业务定位、目标用户或页面用途' },
       { key: 'iconUrl', label: '图标预览', type: 'text', submit: false, valueFromRow: (row) => row.iconUrl },
+    ],
+  },
+  'business-templates': {
+    key: 'business-templates',
+    title: '业务模板',
+    idField: 'id',
+    versionField: 'version',
+    listMode: 'page-records',
+    emptyText: '暂无业务模板',
+    api: {
+      list: '/admin/api/business-templates',
+      create: '/admin/api/business-templates',
+      update: '/admin/api/business-templates/{id}',
+      delete: '/admin/api/business-templates/{id}',
+    },
+    delete: { mode: 'query' },
+    visibility: { enabled: false, field: 'visible', mode: 'update' },
+    reorder: {
+      enabled: true,
+      path: '/admin/api/business-templates/reorder',
+      method: 'post',
+      mode: 'ordered-ids',
+      orderedIdsField: 'orderedTemplateIds',
+    },
+    customActions: [
+      { key: 'copy-template', label: '复制模板', variant: 'ghost' },
+      { key: 'create-business-from-template', label: '创建业务' },
+    ],
+    columns: [
+      { key: 'defaultIcon', label: '默认图标', type: 'media', mediaKey: 'defaultIcon' },
+      { key: 'templateCode', label: '模板编码' },
+      { key: 'templateName', label: '模板名称' },
+      { key: 'templateType', label: '模板类型' },
+      { key: 'defaultBusinessCode', label: '默认业务编码' },
+      { key: 'defaultBusinessName', label: '默认业务名称' },
+      { key: 'defaultBusinessStatus', label: '默认状态' },
+      { key: 'description', label: '模板描述', type: 'description' },
+      { key: 'sortOrder', label: '排序', type: 'sort' },
+      { key: 'updatedAt', label: '更新时间', type: 'date' },
+    ],
+    fields: [
+      { key: 'templateCode', label: '模板编码', type: 'text', required: true, maxLength: 64, placeholder: '例如：AI_CENTER_TEMPLATE、MEDICAL_TEMPLATE' },
+      { key: 'templateName', label: '模板名称', type: 'text', required: true, maxLength: 128, placeholder: '例如：AI能力中心模板、医疗方案模板' },
+      { key: 'templateType', label: '模板类型', type: 'text', required: true, maxLength: 64, placeholder: 'AI_CENTER / MEDICAL / EDUCATION / INDUSTRY / PRODUCT_CENTER' },
+      { key: 'defaultBusinessCode', label: '默认业务编码', type: 'text', maxLength: 64, placeholder: '例如：AI_CENTER、MEDICAL' },
+      { key: 'defaultBusinessName', label: '默认业务名称', type: 'text', maxLength: 128, placeholder: '从模板创建业务时可默认使用' },
+      {
+        key: 'defaultIconMediaId',
+        label: '默认图标媒体 ID',
+        type: 'media-id',
+        min: 1,
+        placeholder: '可选，填写已上传图片媒体 ID',
+        valueFromRow: (row) => row.defaultIconMediaId,
+        previewKey: 'defaultIconUrl',
+      },
+      { key: 'defaultBusinessStatus', label: '默认业务状态', type: 'text', required: true, maxLength: 32, defaultValue: 'DRAFT', placeholder: 'DRAFT / ONLINE / OFFLINE' },
+      { key: 'sortOrder', label: '排序', type: 'number', disabled: true, submit: false, placeholder: '由上移/下移调整' },
+      { key: 'description', label: '模板描述', type: 'textarea', maxLength: 512, placeholder: '说明模板适用业务、页面结构和运营场景' },
+      {
+        key: 'templateConfig',
+        label: '模板配置',
+        type: 'textarea',
+        maxLength: 4000,
+        placeholder: '{"blocks":["Hero","能力介绍","案例","CTA"]}',
+      },
+      { key: 'defaultIconUrl', label: '默认图标预览', type: 'text', submit: false, valueFromRow: (row) => row.defaultIconUrl },
     ],
   },
   'industry-solutions': {
