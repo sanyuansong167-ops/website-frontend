@@ -1,17 +1,17 @@
 <template>
   <SiteHeader />
   <main>
-    <section id="home" class="hero grid-bg" :style="heroBackgroundStyle">
+    <section v-if="showSection('hero')" id="home" class="hero grid-bg" :style="heroBackgroundStyle">
       <div class="container hero-inner">
         <div class="hero-copy">
-          <div class="pill hero-pill"><Award :size="14" />国家高新技术企业 · 湖北省人工智能企业</div>
+          <div class="pill hero-pill"><Award :size="14" />{{ heroContent.pill }}</div>
           <h1 class="hero-title">
             <span>{{ hero.title }}</span>
           </h1>
           <p>{{ hero.subtitle }}</p>
-          <div class="actions">
-            <a class="primary hero-button" href="#cases"><span>了解解决方案</span><ArrowRight :size="16" /></a>
-            <a class="ghost hero-button" href="#contact"><CalendarDays :size="16" /><span>预约交流</span></a>
+          <div v-if="showSection('cta')" class="actions">
+            <a class="primary hero-button" :href="ctaContent.primaryHref"><span>{{ ctaContent.primaryText }}</span><ArrowRight :size="16" /></a>
+            <a class="ghost hero-button" :href="ctaContent.secondaryHref"><CalendarDays :size="16" /><span>{{ ctaContent.secondaryText }}</span></a>
           </div>
           <div class="stats">
             <div v-for="metric in metrics" :key="`${metric.value}-${metric.description}`" class="stat-item">
@@ -34,22 +34,22 @@
       </div>
     </section>
 
-    <section id="ai" class="dark-section">
+    <section v-if="showSection('ai-capability')" id="ai" class="dark-section">
       <div class="container">
-        <span class="dark-pill">AI战略</span>
-        <h2>从数字化到智能化</h2>
-        <p class="lead">云台数据正在从系统建设走向智能协同。十余年的行业经验、业务系统和数据资产积累，让AI具备真实落地的基础。</p>
+        <span class="dark-pill">{{ aiSectionContent.tag }}</span>
+        <h2>{{ aiSectionContent.title }}</h2>
+        <p class="lead">{{ aiSectionContent.description }}</p>
         <div class="ai-cards">
           <Feature v-for="(card, index) in aiCards" :key="card.id" :icon="aiCardIcon(card, index)" :color="aiCardColor(index)" :en="card.en" :title="card.title" :text="card.text" />
         </div>
-        <div class="center ai-cta"><a class="primary" href="#contact">探索AI智能体解决方案</a></div>
+        <div v-if="showSection('cta')" class="center ai-cta"><a class="primary" :href="ctaContent.aiHref">{{ ctaContent.aiText }}</a></div>
       </div>
     </section>
 
-    <section id="products" class="section product-system">
+    <section v-if="showSection('products')" id="products" class="section product-system">
       <div class="container product-system-inner">
-        <SectionTitle tag="产品体系" title="从能力底座到产品矩阵" desc="三层架构覆盖企业数字化全链路，五大产品让每一层能力都可落地" />
-        <h3 class="base-title">能力底座</h3>
+        <SectionTitle :tag="productsSectionContent.tag" :title="productsSectionContent.title" :desc="productsSectionContent.description" />
+        <h3 class="base-title">{{ productsSectionContent.baseTitle }}</h3>
         <div class="base-cards">
           <div v-for="(capability, index) in capabilities" :key="capability.id" :class="['base-card', capabilityClass(index)]">
             <h4>{{ capability.name }}</h4>
@@ -57,7 +57,7 @@
             <span v-for="item in capabilityItems(capability)" :key="item.id">{{ item.name }}</span>
           </div>
         </div>
-        <h3 class="product-matrix-title">产品矩阵</h3>
+        <h3 class="product-matrix-title">{{ productsSectionContent.matrixTitle }}</h3>
         <div class="product-grid">
           <router-link v-for="(p, index) in products" :key="p.id" class="product-card" :class="{ soon: p.id === 'agent' }" :to="productTarget(p)">
             <span class="status">{{ p.status }}</span>
@@ -114,9 +114,9 @@
       </div>
     </section>
 
-    <section id="about" class="section soft timeline-section">
+    <section v-if="showSection('about')" id="about" class="section soft timeline-section">
       <div class="container">
-        <SectionTitle tag="关于我们" title="十余年深耕，持续成长" />
+        <SectionTitle :tag="aboutSectionContent.tag" :title="aboutSectionContent.title" :desc="aboutSectionContent.description" />
         <div class="timeline">
           <div v-for="(t, i) in timeline" :key="t[0]" :class="['tl-item', i % 2 ? 'right' : 'left', t[0] === '2026' ? 'current' : '']">
             <b>{{ t[0] }}</b><h4>{{ t[1] }}</h4><p>{{ t[2] }}</p>
@@ -125,11 +125,11 @@
       </div>
     </section>
 
-    <section id="strength" class="section strength-section">
+    <section v-if="showSection('about')" id="strength" class="section strength-section">
       <div class="container strength-inner">
         <div class="strength-title">
-          <span>关于我们</span>
-          <h2>十余年的行业积累，是云台数据持续创新的基础</h2>
+          <span>{{ aboutSectionContent.tag }}</span>
+          <h2>{{ aboutSectionContent.strengthTitle }}</h2>
         </div>
         <div class="strength">
           <div class="strength-panel honors-panel">
@@ -159,30 +159,30 @@
       </div>
     </section>
 
-    <section id="values" class="section values-section">
+    <section v-if="showSection('about')" id="values" class="section values-section">
       <div class="container">
-        <SectionTitle tag="关于我们" title="核心价值观" />
+        <SectionTitle :tag="aboutSectionContent.tag" :title="aboutSectionContent.valuesTitle" />
         <div class="values">
           <div v-for="(card, index) in valueCards" :key="card.title"><img v-if="card.iconUrl && !failedValueIcons[card.title]" :src="card.iconUrl" :alt="card.title" @error="failedValueIcons[card.title] = true"><IconBox v-else :name="valueCardIcon(index)" /><h3>{{ card.title }}</h3><b v-if="card.subtitle">{{ card.subtitle }}</b><p>{{ card.description }}</p></div>
         </div>
-        <div class="promise"><h3>我们的承诺</h3><p v-if="ourPromises.content">{{ ourPromises.content }}</p><span v-for="tag in promiseTags" :key="tag.label">{{ tag.label }}</span></div>
+        <div class="promise"><h3>{{ aboutSectionContent.promiseTitle }}</h3><p v-if="ourPromises.content">{{ ourPromises.content }}</p><span v-for="tag in promiseTags" :key="tag.label">{{ tag.label }}</span></div>
       </div>
     </section>
 
-    <section id="contact" class="section soft">
+    <section v-if="showSection('contact')" id="contact" class="section soft">
       <div class="container">
-        <SectionTitle tag="联系我们" title="期待与您共同探索未来" desc="无论您正在规划数字化转型、建设数据平台，还是探索人工智能应用落地" />
+        <SectionTitle :tag="contactSectionContent.tag" :title="contactSectionContent.title" :desc="contactSectionContent.description" />
         <div class="contact-grid">
           <div>
-            <div class="contact-card"><h3>联系方式</h3><p v-if="contactInfo.address"><b>地址</b><br>{{ contactInfo.address }}</p><p v-if="contactInfo.phone"><b>商务咨询</b><br>{{ contactInfo.phone }}</p><p v-if="contactInfo.email"><b>邮箱联系</b><br>{{ contactInfo.email }}</p></div>
-            <div class="blue-box"><h3>合作方向</h3><span v-for="tag in cooperationDirectionTags" :key="tag.label">{{ tag.label }}</span></div>
+            <div class="contact-card"><h3>{{ contactSectionContent.cardTitle }}</h3><p v-if="contactInfo.address"><b>{{ contactSectionContent.addressLabel }}</b><br>{{ contactInfo.address }}</p><p v-if="contactInfo.phone"><b>{{ contactSectionContent.phoneLabel }}</b><br>{{ contactInfo.phone }}</p><p v-if="contactInfo.email"><b>{{ contactSectionContent.emailLabel }}</b><br>{{ contactInfo.email }}</p></div>
+            <div class="blue-box"><h3>{{ contactSectionContent.cooperationTitle }}</h3><span v-for="tag in cooperationDirectionTags" :key="tag.label">{{ tag.label }}</span></div>
           </div>
           <form class="form" @submit.prevent="handleLeadSubmit">
-            <h3>预约交流</h3>
+            <h3>{{ ctaContent.formTitle }}</h3>
             <div class="form-row"><label>姓名 *<input v-model="leadForm.contactName" placeholder="您的姓名" /></label><label>公司 *<input v-model="leadForm.companyName" placeholder="公司名称" /></label></div>
             <div class="form-row"><label>邮箱 *<input v-model="leadForm.email" placeholder="your@email.com" /></label><label>电话<input v-model="leadForm.phone" placeholder="联系电话" /></label></div>
             <label>需求描述<textarea v-model="leadForm.demandContent" placeholder="请简要描述您的需求..."></textarea></label>
-            <button type="submit" class="primary full" :disabled="submitting">{{ submitting ? '提交中...' : '提交预约' }}</button>
+            <button type="submit" class="primary full" :disabled="submitting">{{ submitting ? ctaContent.submittingText : ctaContent.submitText }}</button>
             <p v-if="leadMessage">{{ leadMessage }}</p>
           </form>
         </div>
@@ -220,13 +220,11 @@ import {
 import { computed, onMounted, ref } from 'vue'
 import { ArrowRight, Award, BarChart3, Bot, BrainCircuit, Building2, CalendarDays, Check, ClipboardList, BookOpen, GraduationCap, Landmark, Lightbulb, Trophy, Users, Zap } from 'lucide-vue-next'
 import {
-  getHomeBanner,
   getHomeMetrics,
   getHonors,
   getPortalAiCards,
   getPortalCapabilities,
   getPortalClientLogos,
-  getPortalContactInfo,
   getPortalCooperationDirectionTags,
   getPortalIndustrySolutions,
   getPortalOurPromises,
@@ -238,6 +236,7 @@ import {
   getPortalValueCards,
   submitPortalLead,
 } from '../api/portal'
+import { getPortalPageSections, homePageSectionFallbacks, type PortalPageSection } from '../api/pageSection'
 
 const hero = ref({ ...defaultHero })
 const metrics = ref([...defaultMetrics])
@@ -271,6 +270,11 @@ const leadForm = ref({
   phone: '',
   demandContent: '',
 })
+const pageSectionsReady = ref(false)
+const pageSectionsFailed = ref(false)
+const pageSectionMap = ref<Record<string, PortalPageSection>>({})
+
+const homeSectionCodes = ['hero', 'products', 'ai-capability', 'about', 'contact', 'cta']
 
 const productDisplayMeta = defaultProducts.map((product) => ({
   id: product.id,
@@ -303,6 +307,87 @@ const heroBackgroundStyle = computed(() => {
   }
 })
 
+const heroContent = computed(() => {
+  const payload = sectionPayload('hero')
+
+  return {
+    pill: firstText(payload.pill, payload.tag, homePageSectionFallbacks.hero.pill),
+  }
+})
+
+const productsSectionContent = computed(() => {
+  const section = pageSectionMap.value.products
+  const payload = sectionPayload('products')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.products.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.products.title),
+    description: firstText(section?.description, payload.description, homePageSectionFallbacks.products.description),
+    baseTitle: firstText(payload.baseTitle, homePageSectionFallbacks.products.baseTitle),
+    matrixTitle: firstText(payload.matrixTitle, homePageSectionFallbacks.products.matrixTitle),
+  }
+})
+
+const aiSectionContent = computed(() => {
+  const section = pageSectionMap.value['ai-capability']
+  const payload = sectionPayload('ai-capability')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.aiCapability.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.aiCapability.title),
+    description: firstText(section?.description, payload.description, homePageSectionFallbacks.aiCapability.description),
+  }
+})
+
+const aboutSectionContent = computed(() => {
+  const section = pageSectionMap.value.about
+  const payload = sectionPayload('about')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.about.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.about.title),
+    description: firstText(section?.description, payload.description),
+    strengthTitle: firstText(payload.strengthTitle, section?.subtitle, homePageSectionFallbacks.about.strengthTitle),
+    valuesTitle: firstText(payload.valuesTitle, homePageSectionFallbacks.about.valuesTitle),
+    promiseTitle: firstText(payload.promiseTitle, homePageSectionFallbacks.about.promiseTitle),
+  }
+})
+
+const contactSectionContent = computed(() => {
+  const section = pageSectionMap.value.contact
+  const payload = sectionPayload('contact')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.contact.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.contact.title),
+    description: firstText(section?.description, payload.description, homePageSectionFallbacks.contact.description),
+    cardTitle: firstText(payload.cardTitle, homePageSectionFallbacks.contact.cardTitle),
+    addressLabel: firstText(payload.addressLabel, homePageSectionFallbacks.contact.addressLabel),
+    phoneLabel: firstText(payload.phoneLabel, homePageSectionFallbacks.contact.phoneLabel),
+    emailLabel: firstText(payload.emailLabel, homePageSectionFallbacks.contact.emailLabel),
+    cooperationTitle: firstText(payload.cooperationTitle, homePageSectionFallbacks.contact.cooperationTitle),
+  }
+})
+
+const ctaContent = computed(() => {
+  const section = pageSectionMap.value.cta
+  const payload = sectionPayload('cta')
+
+  return {
+    primaryText: firstText(payload.primaryText, section?.title, homePageSectionFallbacks.cta.primaryText),
+    primaryHref: firstText(payload.primaryHref, homePageSectionFallbacks.cta.primaryHref),
+    secondaryText: firstText(payload.secondaryText, section?.subtitle, homePageSectionFallbacks.cta.secondaryText),
+    secondaryHref: firstText(payload.secondaryHref, homePageSectionFallbacks.cta.secondaryHref),
+    aiText: firstText(payload.aiText, section?.description, homePageSectionFallbacks.cta.aiText),
+    aiHref: firstText(payload.aiHref, homePageSectionFallbacks.cta.aiHref),
+    formTitle: firstText(payload.formTitle, section?.subtitle, homePageSectionFallbacks.cta.formTitle),
+    submitText: firstText(payload.submitText, homePageSectionFallbacks.cta.submitText),
+    submittingText: firstText(payload.submittingText, homePageSectionFallbacks.cta.submittingText),
+    successMessage: firstText(payload.successMessage, homePageSectionFallbacks.cta.successMessage),
+    failureMessage: firstText(payload.failureMessage, homePageSectionFallbacks.cta.failureMessage),
+  }
+})
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -330,15 +415,72 @@ function fillToDefaultCount<T>(items: T[], defaults: T[]) {
   return [...limited, ...defaults.slice(limited.length)]
 }
 
-function mapHomeBanner(data: unknown) {
-  const source = Array.isArray(data) ? data[0] : data
-  if (!isRecord(source)) return null
+function showSection(sectionCode: string) {
+  if (!pageSectionsReady.value || pageSectionsFailed.value) return true
+  return Boolean(pageSectionMap.value[sectionCode])
+}
+
+function parseSectionContent(section?: PortalPageSection) {
+  if (!section?.contentJson) return {}
+
+  try {
+    const parsed = JSON.parse(section.contentJson)
+    return isRecord(parsed) ? parsed : {}
+  } catch (error) {
+    console.error(`[Portal API] page-section ${section.sectionCode} contentJson invalid`, error)
+    return {}
+  }
+}
+
+function sectionPayload(sectionCode: string) {
+  return parseSectionContent(pageSectionMap.value[sectionCode])
+}
+
+function mapHeroSection(section?: PortalPageSection) {
+  if (!section) return null
+  const payload = parseSectionContent(section)
 
   return {
-    title: firstText(source.mainTitle, source.title, source.name) || defaultHero.title,
-    subtitle: firstText(source.subTitle, source.subtitle, source.description) || defaultHero.subtitle,
-    backgroundImage: firstText(source.backgroundImageUrl, source.imageUrl, source.backgroundImage) || defaultHero.backgroundImage,
+    title: firstText(section.title, payload.title, payload.mainTitle) || defaultHero.title,
+    subtitle: firstText(section.subtitle, payload.subtitle, section.description, payload.description) || defaultHero.subtitle,
+    backgroundImage: firstText(
+      payload.bannerImageUrl,
+      payload.backgroundImageUrl,
+      payload.backgroundImage,
+      payload.imageUrl,
+      payload.mediaUrl,
+      payload.publicUrl,
+      payload.absoluteUrl,
+    ) || defaultHero.backgroundImage,
   }
+}
+
+function mapContactSection(section?: PortalPageSection) {
+  if (!section) return null
+  const payload = parseSectionContent(section)
+  const contact = isRecord(payload.contactInfo) ? payload.contactInfo : payload
+
+  return {
+    address: firstText(contact.address, payload.address) || defaultContactInfo.address,
+    phone: firstText(contact.phone, payload.phone) || defaultContactInfo.phone,
+    email: firstText(contact.email, payload.email) || defaultContactInfo.email,
+  }
+}
+
+function applyHomePageSections(sections: PortalPageSection[]) {
+  const map: Record<string, PortalPageSection> = {}
+  for (const section of sections) {
+    if (homeSectionCodes.includes(section.sectionCode)) {
+      map[section.sectionCode] = section
+    }
+  }
+  pageSectionMap.value = map
+
+  const mappedHero = mapHeroSection(map.hero)
+  if (mappedHero) hero.value = mappedHero
+
+  const mappedContact = mapContactSection(map.contact)
+  if (mappedContact) contactInfo.value = mappedContact
 }
 
 function mapMetrics(data: unknown) {
@@ -505,13 +647,17 @@ function validateLeadForm() {
   return ''
 }
 
-async function loadHomeBanner() {
+async function loadHomePageSections() {
   try {
-    const data = await getHomeBanner()
-    const mapped = mapHomeBanner(data)
-    if (mapped) hero.value = mapped
+    const sections = await getPortalPageSections('home')
+    pageSectionsFailed.value = false
+    applyHomePageSections(Array.isArray(sections) ? sections : [])
   } catch (error) {
-    console.error('[Portal API] home-banner failed, fallback to site.js', error)
+    pageSectionsFailed.value = true
+    pageSectionMap.value = {}
+    console.error('[Portal API] page-sections failed, fallback to site.js', error)
+  } finally {
+    pageSectionsReady.value = true
   }
 }
 
@@ -552,15 +698,6 @@ async function loadIndustrySolutions() {
   } catch (error) {
     console.error('[Portal API] industry-solutions failed, fallback to site.js', error)
     industrySolutions.value = [...defaultIndustrySolutions]
-  }
-}
-
-async function loadContactInfo() {
-  try {
-    contactInfo.value = await getPortalContactInfo()
-  } catch (error) {
-    console.error('[Portal API] contact-info failed, fallback to site.js', error)
-    contactInfo.value = { ...defaultContactInfo }
   }
 }
 
@@ -689,23 +826,22 @@ async function handleLeadSubmit() {
 
   try {
     await submitPortalLead(leadForm.value)
-    leadMessage.value = '提交成功，我们会尽快与您联系'
+    leadMessage.value = ctaContent.value.successMessage
     resetLeadForm()
   } catch (error) {
     console.error('[Portal API] leads failed', error)
-    leadMessage.value = '提交失败，请稍后重试'
+    leadMessage.value = ctaContent.value.failureMessage
   } finally {
     submitting.value = false
   }
 }
 
 onMounted(() => {
-  loadHomeBanner()
+  loadHomePageSections()
   loadHomeMetrics()
   loadHonors()
   loadProducts()
   loadIndustrySolutions()
-  loadContactInfo()
   loadCooperationDirectionTags()
   loadAiCards()
   loadCapabilities()

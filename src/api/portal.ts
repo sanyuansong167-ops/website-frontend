@@ -30,7 +30,7 @@ type PortalProductResponse = {
   status?: unknown
 }
 
-type PortalProduct = {
+export type PortalProduct = {
   id: string | number
   title: string
   logoUrl: string
@@ -40,7 +40,36 @@ type PortalProduct = {
   detailLink: string
 }
 
+type PortalProductDetailResponse = {
+  id?: string | number
+  title?: unknown
+  description?: unknown
+  content?: unknown
+  coverMediaId?: string | number | null
+  coverUrl?: unknown
+  seoTitle?: unknown
+  seoDescription?: unknown
+  visible?: unknown
+  status?: unknown
+  updatedAt?: unknown
+}
+
+export type PortalProductDetail = {
+  id: string | number
+  title: string
+  description: string
+  content: string
+  coverMediaId: string | number | null
+  coverUrl: string
+  seoTitle: string
+  seoDescription: string
+  visible: boolean
+  status: string
+  updatedAt: string
+}
+
 type PortalCaseResponse = {
+  id?: string | number
   title?: unknown
   logoUrl?: unknown
   summary?: unknown
@@ -50,11 +79,44 @@ type PortalCaseResponse = {
   tags?: unknown
 }
 
-type PortalCase = {
+export type PortalCase = {
+  id: string | number
   title: string
   img: string
   desc: string
   tags: string[]
+}
+
+type PortalCaseDetailResponse = {
+  id?: string | number
+  title?: unknown
+  customerName?: unknown
+  industry?: unknown
+  background?: unknown
+  solution?: unknown
+  result?: unknown
+  content?: unknown
+  coverMediaId?: string | number | null
+  coverUrl?: unknown
+  images?: unknown
+  seoTitle?: unknown
+  seoDescription?: unknown
+}
+
+export type PortalCaseDetail = {
+  id: string | number
+  title: string
+  customerName: string
+  industry: string
+  background: string
+  solution: string
+  result: string
+  content: string
+  coverMediaId: string | number | null
+  coverUrl: string
+  images: string[]
+  seoTitle: string
+  seoDescription: string
 }
 
 type PortalContactInfoResponse = {
@@ -352,6 +414,24 @@ function mapPortalProduct(item: PortalProductResponse): PortalProduct {
   }
 }
 
+function mapPortalProductDetail(data: unknown): PortalProductDetail {
+  const item = isRecord(data) ? (data as PortalProductDetailResponse) : {}
+
+  return {
+    id: item.id ?? '',
+    title: asString(item.title),
+    description: asString(item.description),
+    content: asString(item.content),
+    coverMediaId: item.coverMediaId ?? null,
+    coverUrl: asString(item.coverUrl),
+    seoTitle: asString(item.seoTitle),
+    seoDescription: asString(item.seoDescription),
+    visible: item.visible === true || item.visible === 1 || item.visible === '1' || item.visible === 'true',
+    status: asString(item.status),
+    updatedAt: asString(item.updatedAt),
+  }
+}
+
 function mapPortalProducts(data: unknown) {
   return assertArray(data, 'getPortalProducts', '/portal/api/products').map((item) =>
     mapPortalProduct(isRecord(item) ? item : {}),
@@ -360,10 +440,31 @@ function mapPortalProducts(data: unknown) {
 
 function mapPortalCase(item: PortalCaseResponse): PortalCase {
   return {
+    id: item.id ?? '',
     title: asString(item.title),
     img: asString(item.logoUrl ?? item.img),
     desc: asString(item.summary ?? item.desc),
     tags: asStringArray(item.keywords ?? item.tags),
+  }
+}
+
+function mapPortalCaseDetail(data: unknown): PortalCaseDetail {
+  const item = isRecord(data) ? (data as PortalCaseDetailResponse) : {}
+
+  return {
+    id: item.id ?? '',
+    title: asString(item.title),
+    customerName: asString(item.customerName),
+    industry: asString(item.industry),
+    background: asString(item.background),
+    solution: asString(item.solution),
+    result: asString(item.result),
+    content: asString(item.content),
+    coverMediaId: item.coverMediaId ?? null,
+    coverUrl: asString(item.coverUrl),
+    images: asStringArray(item.images),
+    seoTitle: asString(item.seoTitle),
+    seoDescription: asString(item.seoDescription),
   }
 }
 
@@ -606,8 +707,16 @@ export function getPortalProducts() {
   return getPortalWithMock('getPortalProducts', '/portal/api/products', mapPortalProducts, products)
 }
 
+export function getPortalProductDetail(id: string | number) {
+  return getPortal<unknown>(`/portal/api/products/${encodeURIComponent(String(id))}`).then(mapPortalProductDetail)
+}
+
 export function getPortalCases() {
   return getPortalWithMock('getPortalCases', '/portal/api/cases', mapPortalCases, cases)
+}
+
+export function getPortalCaseDetail(id: string | number) {
+  return getPortal<unknown>(`/portal/api/cases/${encodeURIComponent(String(id))}`).then(mapPortalCaseDetail)
 }
 
 export function getPortalContactInfo() {

@@ -1,25 +1,35 @@
 <template>
   <SiteHeader />
-  <main class="detail-page soft">
+  <main class="detail-page soft case-detail-page">
     <section class="section">
       <div class="container">
         <SectionTitle
           tag="案例详情"
-          title="案例详情"
-          desc="聚焦运行在企业真实场景、每一个案例均不是演示内容，而是正在服务中的客户案例。"
+          :title="pageTitle"
+          :desc="pageDescription"
         />
-        <div class="case-list">
-          <article v-for="(c, index) in cases" :key="c.title" class="case-detail">
-            <img :src="caseImage(c, index)" :alt="c.title">
-            <div>
-              <h2>{{ c.title }}</h2>
-              <b>{{ caseTagSummary(c) }}</b>
-              <p>{{ c.desc }}</p>
-              <span v-for="t in caseTags(c)" :key="t">{{ t }}</span>
-              <blockquote>{{ c.desc }}</blockquote>
-            </div>
-          </article>
+
+        <div v-if="loading" class="detail-state">正在加载案例详情...</div>
+
+        <div v-else-if="notFound" class="detail-state error">
+          未找到对应案例，可能已下线或链接已失效。
         </div>
+
+        <article v-else-if="caseDetail" class="case-detail">
+          <img v-if="coverImage" :src="coverImage" :alt="caseDetail.title">
+          <div>
+            <h2>{{ caseDetail.title }}</h2>
+            <b>{{ caseMeta }}</b>
+            <p>{{ caseDetail.background }}</p>
+            <span v-if="caseDetail.industry">{{ caseDetail.industry }}</span>
+            <span v-if="caseDetail.customerName">{{ caseDetail.customerName }}</span>
+            <blockquote>{{ caseDetail.result || caseDetail.solution || caseDetail.background }}</blockquote>
+            <div v-if="richContent" class="rich-content" v-html="richContent"></div>
+            <div v-else class="detail-empty">暂无更多详情内容。</div>
+          </div>
+        </article>
+
+        <div v-else class="detail-state">暂无案例详情。</div>
       </div>
     </section>
   </main>
@@ -27,36 +37,124 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { cases as defaultCases } from '../data/site'
-import { getPortalCases } from '../api/portal'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import {
+  getPortalCaseDetail,
+  getPortalCases,
+} from '../api/portal'
 import SiteHeader from '../components/SiteHeader.vue'
 import FooterSection from '../components/FooterSection.vue'
 import SectionTitle from '../components/SectionTitle.vue'
 
-const cases = ref([...defaultCases])
+const route = useRoute()
+const loading = ref(false)
+const notFound = ref(false)
+const caseDetail = ref(null)
 
-function caseImage(item, index) {
-  return item.img || defaultCases[index]?.img || ''
+const pageTitle = computed(() => caseDetail.value?.title || '案例详情')
+const pageDescription = computed(() => caseDetail.value?.background || '运行在企业真实场景中的客户案例。')
+const coverImage = computed(() => caseDetail.value?.coverUrl || caseDetail.value?.images?.[0] || '')
+const caseMeta = computed(() => {
+  const parts = [caseDetail.value?.customerName, caseDetail.value?.industry].filter(Boolean)
+  return parts.join(' / ')
+})
+const richContent = computed(() => caseDetail.value?.content || fallbackContent(caseDetail.value?.background))
+
+async function resolveCaseId() {
+  const id = route.params.id
+  if (Array.isArray(id)) return id[0]
+  if (id) return id
+
+  const list = await getPortalCases()
+  return Array.isArray(list) && list[0]?.id ? list[0].id : ''
 }
 
-function caseTags(item) {
-  return Array.isArray(item.tags) ? item.tags : []
-}
+async function loadCase() {
+  loading.value = true
+  notFound.value = false
+  caseDetail.value = null
 
-function caseTagSummary(item) {
-  return caseTags(item).join(' / ')
-}
-
-async function loadCases() {
   try {
-    const data = await getPortalCases()
-    if (Array.isArray(data) && data.length > 0) cases.value = data
+    const id = await resolveCaseId()
+    if (!id) {
+      notFound.value = true
+      return
+    }
+
+    const detail = await getPortalCaseDetail(id)
+    if (!detail?.id) {
+      notFound.value = true
+      return
+    }
+
+    caseDetail.value = detail
+    applySeo(detail.seoTitle || detail.title, detail.seoDescription || detail.background)
   } catch (error) {
-    console.error('[Portal API] cases failed, fallback to site.js', error)
-    cases.value = [...defaultCases]
+    console.error('[Portal API] case detail failed', error)
+    notFound.value = true
+  } finally {
+    loading.value = false
   }
 }
 
-onMounted(loadCases)
+function fallbackContent(value) {
+  const text = String(value || '').trim()
+  return text ? `<p>${escapeHtml(text)}</p>` : ''
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function applySeo(title, description) {
+  document.title = title ? `${title} - 武汉云台数据` : '案例详情 - 武汉云台数据'
+  let meta = document.querySelector('meta[name="description"]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', 'description')
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute('content', description || '')
+}
+
+onMounted(loadCase)
+watch(() => route.params.id, loadCase)
 </script>
+
+<style scoped>
+.detail-state {
+  padding: 56px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.detail-state.error {
+  color: #b42318;
+}
+
+.case-detail {
+  align-items: start;
+}
+
+.case-detail img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.rich-content {
+  margin-top: 22px;
+  color: #334155;
+  line-height: 1.9;
+}
+
+.detail-empty {
+  margin-top: 22px;
+  color: #94a3b8;
+}
+</style>

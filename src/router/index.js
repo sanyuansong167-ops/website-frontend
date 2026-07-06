@@ -10,10 +10,10 @@ export default createRouter({
     { path: '/', name: 'home', component: Home },
     { path: '/products', redirect: '/#products' },
     { path: '/product', name: 'product-detail', component: ProductDetail },
-    { path: '/product/:id', redirect: '/product' },
+    { path: '/product/:id', name: 'product-detail-by-id', component: ProductDetail },
     { path: '/cases', redirect: '/#cases' },
     { path: '/case', name: 'case-detail', component: CaseDetail },
-    { path: '/case/:id', redirect: '/case' },
+    { path: '/case/:id', name: 'case-detail-by-id', component: CaseDetail },
     ...adminRoutes,
   ],
   scrollBehavior(to) {

@@ -1,30 +1,37 @@
 <template>
   <SiteHeader />
-  <main class="detail-page">
+  <main class="detail-page product-detail-page">
     <section class="section">
       <div class="container">
         <SectionTitle
           tag="产品详情"
-          title="产品详情"
-          desc="真实贴合行业业务场景，每一个模块均不是演示内容，而是云台进行中的生产产品。"
+          :title="pageTitle"
+          :desc="pageDescription"
         />
-        <div class="detail-list">
-          <article v-for="(p, index) in products" :key="p.id" class="detail-card">
-            <div>
-              <IconBox :name="productIcon(p, index)" :color="productColor(p, index)" />
-              <h2>{{ p.title }}</h2>
-              <b>{{ p.sub }}</b>
-              <p>{{ p.desc }}</p>
-              <span v-for="t in productTags(p, index)" :key="t">{{ t }}</span>
-            </div>
-            <div>
-              <h3>核心功能</h3>
-              <ul>
-                <li v-for="f in productFeatures(p, index)" :key="f">{{ f }}</li>
-              </ul>
-            </div>
-          </article>
+
+        <div v-if="loading" class="detail-state">正在加载产品详情...</div>
+
+        <div v-else-if="notFound" class="detail-state error">
+          未找到对应产品，可能已下线或链接已失效。
         </div>
+
+        <article v-else-if="product" class="detail-card product-detail-card">
+          <div class="detail-media" v-if="product.coverUrl">
+            <img :src="product.coverUrl" :alt="product.title">
+          </div>
+          <div class="detail-main">
+            <div class="detail-meta">
+              <span v-if="product.status">{{ product.status }}</span>
+              <span v-if="product.updatedAt">更新于 {{ formatDate(product.updatedAt) }}</span>
+            </div>
+            <h2>{{ product.title }}</h2>
+            <p class="detail-desc">{{ product.description }}</p>
+            <div v-if="richContent" class="rich-content" v-html="richContent"></div>
+            <div v-else class="detail-empty">暂无更多详情内容。</div>
+          </div>
+        </article>
+
+        <div v-else class="detail-state">暂无产品详情。</div>
       </div>
     </section>
   </main>
@@ -32,45 +39,154 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { products as defaultProducts } from '../data/site'
-import { getPortalProducts } from '../api/portal'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import {
+  getPortalProductDetail,
+  getPortalProducts,
+} from '../api/portal'
 import SiteHeader from '../components/SiteHeader.vue'
 import FooterSection from '../components/FooterSection.vue'
 import SectionTitle from '../components/SectionTitle.vue'
-import IconBox from '../components/IconBox.vue'
 
-const products = ref([...defaultProducts])
+const route = useRoute()
+const loading = ref(false)
+const notFound = ref(false)
+const product = ref(null)
 
-function findProductMeta(product, index) {
-  return defaultProducts.find((item) => item.id === product.id) || defaultProducts[index] || defaultProducts[0] || {}
+const pageTitle = computed(() => product.value?.title || '产品详情')
+const pageDescription = computed(() => product.value?.description || '真实贴合行业业务场景的云台生产产品。')
+const richContent = computed(() => product.value?.content || fallbackContent(product.value?.description))
+
+async function resolveProductId() {
+  const id = route.params.id
+  if (Array.isArray(id)) return id[0]
+  if (id) return id
+
+  const list = await getPortalProducts()
+  return Array.isArray(list) && list[0]?.id ? list[0].id : ''
 }
 
-function productIcon(product, index) {
-  return findProductMeta(product, index).icon || 'Box'
-}
+async function loadProduct() {
+  loading.value = true
+  notFound.value = false
+  product.value = null
 
-function productColor(product, index) {
-  return findProductMeta(product, index).color || 'blue'
-}
-
-function productTags(product, index) {
-  return findProductMeta(product, index).tags || []
-}
-
-function productFeatures(product, index) {
-  return findProductMeta(product, index).features || []
-}
-
-async function loadProducts() {
   try {
-    const data = await getPortalProducts()
-    if (Array.isArray(data) && data.length > 0) products.value = data
+    const id = await resolveProductId()
+    if (!id) {
+      notFound.value = true
+      return
+    }
+
+    const detail = await getPortalProductDetail(id)
+    if (!detail?.id || detail.visible === false) {
+      notFound.value = true
+      return
+    }
+
+    product.value = detail
+    applySeo(detail.seoTitle || detail.title, detail.seoDescription || detail.description)
   } catch (error) {
-    console.error('[Portal API] products failed, fallback to site.js', error)
-    products.value = [...defaultProducts]
+    console.error('[Portal API] product detail failed', error)
+    notFound.value = true
+  } finally {
+    loading.value = false
   }
 }
 
-onMounted(loadProducts)
+function fallbackContent(value) {
+  const text = String(value || '').trim()
+  return text ? `<p>${escapeHtml(text)}</p>` : ''
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  return String(value).slice(0, 10)
+}
+
+function applySeo(title, description) {
+  document.title = title ? `${title} - 武汉云台数据` : '产品详情 - 武汉云台数据'
+  let meta = document.querySelector('meta[name="description"]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', 'description')
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute('content', description || '')
+}
+
+onMounted(loadProduct)
+watch(() => route.params.id, loadProduct)
 </script>
+
+<style scoped>
+.detail-state {
+  padding: 56px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.detail-state.error {
+  color: #b42318;
+}
+
+.product-detail-card {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.detail-media img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.detail-meta span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #334155;
+  font-size: 13px;
+}
+
+.detail-desc {
+  color: #475569;
+}
+
+.rich-content {
+  margin-top: 22px;
+  color: #334155;
+  line-height: 1.9;
+}
+
+.detail-empty {
+  margin-top: 22px;
+  color: #94a3b8;
+}
+
+@media (max-width: 760px) {
+  .product-detail-card {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
