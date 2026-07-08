@@ -21,6 +21,11 @@ export default defineConfig({
         changeOrigin: true,
         configure: stripOrigin,
       },
+      '/media/public': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        configure: stripOrigin,
+      },
     },
   },
 })

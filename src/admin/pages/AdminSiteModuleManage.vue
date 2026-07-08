@@ -5,11 +5,6 @@
         <p>{{ formConfig ? '内容运营' : 'Site Module' }}</p>
         <h2>{{ currentConfig?.title || '未找到模块' }}{{ formConfig ? '管理' : '' }}</h2>
       </div>
-      <select v-model="selectedKey" @change="goSelectedModule">
-        <option v-for="item in adminSiteModuleConfigs" :key="item.key" :value="item.key">
-          {{ item.title }}
-        </option>
-      </select>
     </header>
 
     <p v-if="!currentConfig" class="site-module__error">当前后台模块不存在。</p>
@@ -172,7 +167,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import http, { unwrapApiData } from '../../api/http'
 import SiteModuleForm from '../components/SiteModuleForm.vue'
 import SiteModuleList from '../components/SiteModuleList.vue'
@@ -190,7 +185,6 @@ import {
 } from '../api/adminSite'
 
 const route = useRoute()
-const router = useRouter()
 const selectedKey = ref(String(route.params.moduleKey || adminSiteModuleConfigs[0]?.key || ''))
 const rawData = ref<unknown>(null)
 const selectedRow = ref<Record<string, unknown> | null>(null)
@@ -344,6 +338,8 @@ function rowTitle(row: Record<string, unknown>, index: number) {
     row.title ||
       row.name ||
       row.menuName ||
+      row.pageName ||
+      row.blockName ||
       row.label ||
       row.siteTitle ||
       row.mainTitle ||
@@ -431,10 +427,6 @@ function buildPayloadFromData(config: SiteModuleFormConfig, data: Record<string,
 function syncSelectedKeyFromRoute() {
   const key = String(route.params.moduleKey || selectedKey.value)
   selectedKey.value = getAdminSiteModuleConfig(key) ? key : adminSiteModuleConfigs[0]?.key || ''
-}
-
-function goSelectedModule() {
-  void router.push(`/admin/site-modules/${selectedKey.value}`)
 }
 
 function closeDialog() {
@@ -862,19 +854,12 @@ onMounted(() => {
   margin: 0;
 }
 
-.site-module__header select,
 .site-module input,
 .site-module textarea {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font: inherit;
-}
-
-.site-module__header select {
-  max-width: 260px;
-  height: 40px;
-  padding: 0 10px;
 }
 
 .site-module__toolbar span {
@@ -1061,8 +1046,5 @@ onMounted(() => {
     flex-direction: column;
   }
 
-  .site-module__header select {
-    max-width: none;
-  }
 }
 </style>

@@ -529,6 +529,66 @@ function mapPortalIndustrySolutionList(data: unknown) {
   return Array.isArray(data) ? data.map((item) => mapPortalIndustrySolution(isRecord(item) ? item : {})) : []
 }
 
+function findDefaultProduct(id: string | number) {
+  const normalizedId = asString(id)
+  return products.find((item) => asString(item.id) === normalizedId)
+}
+
+function findDefaultCase(id: string | number) {
+  const normalizedId = asString(id)
+  return cases.find((item) => asString(item.id) === normalizedId)
+}
+
+function mapDefaultProductDetail(id: string | number): PortalProductDetail | null {
+  const item = findDefaultProduct(id)
+  if (!item) return null
+
+  const description = asString(item.abstractText ?? item.desc)
+
+  return {
+    id: item.id ?? id,
+    title: asString(item.name ?? item.title),
+    description,
+    content: '',
+    coverMediaId: null,
+    coverUrl: asString(item.coverUrl ?? item.logoUrl ?? item.img),
+    seoTitle: '',
+    seoDescription: description,
+    visible: true,
+    status: asString(item.statusTag ?? item.status),
+    updatedAt: '',
+    relatedCases: mapPortalCaseList(cases.slice(0, 3)),
+    relatedIndustrySolutions: mapPortalIndustrySolutionList(industrySolutions.slice(0, 3)),
+  }
+}
+
+function mapDefaultCaseDetail(id: string | number): PortalCaseDetail | null {
+  const item = findDefaultCase(id)
+  if (!item) return null
+
+  const background = asString(item.background ?? item.summary ?? item.desc)
+  const coverUrl = asString(item.coverUrl ?? item.logoUrl ?? item.img)
+
+  return {
+    id: item.id ?? id,
+    title: asString(item.title),
+    customerName: asString(item.customerName),
+    industry: asString(item.industry),
+    background,
+    solution: asString(item.solution ?? item.quote),
+    result: asString(item.result ?? item.quote),
+    content: '',
+    coverMediaId: null,
+    coverUrl,
+    images: coverUrl ? [coverUrl] : [],
+    status: asString(item.status),
+    seoTitle: '',
+    seoDescription: background,
+    recommendedCases: mapPortalCaseList(cases.filter((caseItem) => asString(caseItem.id) !== asString(id)).slice(0, 3)),
+    relatedProducts: mapPortalProductList(products.slice(0, 3)),
+  }
+}
+
 function mapPortalCooperationDirectionTag(
   item: PortalCooperationDirectionTagResponse,
 ): PortalCooperationDirectionTag {
@@ -733,20 +793,52 @@ export function getHonors() {
   return getPortal('/portal/api/site/honors')
 }
 
-export function getPortalProducts() {
-  return getPortalWithMock('getPortalProducts', '/portal/api/products', mapPortalProducts, products)
+export async function getPortalProducts() {
+  try {
+    const mapped = mapPortalProducts(await getPortal<unknown>('/portal/api/products'))
+    return mapped.length ? mapped : mapPortalProducts(products)
+  } catch (error) {
+    logPortalGetError('getPortalProducts', '/portal/api/products', error)
+    return mapPortalProducts(products)
+  }
 }
 
-export function getPortalProductDetail(id: string | number) {
-  return getPortal<unknown>(`/portal/api/products/${encodeURIComponent(String(id))}`).then(mapPortalProductDetail)
+export async function getPortalProductDetail(id: string | number) {
+  const path = `/portal/api/products/${encodeURIComponent(String(id))}`
+  const fallback = mapDefaultProductDetail(id)
+
+  try {
+    const detail = mapPortalProductDetail(await getPortal<unknown>(path))
+    return detail.id ? detail : fallback || detail
+  } catch (error) {
+    logPortalGetError('getPortalProductDetail', path, error)
+    if (fallback) return fallback
+    throw error
+  }
 }
 
-export function getPortalCases() {
-  return getPortalWithMock('getPortalCases', '/portal/api/cases', mapPortalCases, cases)
+export async function getPortalCases() {
+  try {
+    const mapped = mapPortalCases(await getPortal<unknown>('/portal/api/cases'))
+    return mapped.length ? mapped : mapPortalCases(cases)
+  } catch (error) {
+    logPortalGetError('getPortalCases', '/portal/api/cases', error)
+    return mapPortalCases(cases)
+  }
 }
 
-export function getPortalCaseDetail(id: string | number) {
-  return getPortal<unknown>(`/portal/api/cases/${encodeURIComponent(String(id))}`).then(mapPortalCaseDetail)
+export async function getPortalCaseDetail(id: string | number) {
+  const path = `/portal/api/cases/${encodeURIComponent(String(id))}`
+  const fallback = mapDefaultCaseDetail(id)
+
+  try {
+    const detail = mapPortalCaseDetail(await getPortal<unknown>(path))
+    return detail.id ? detail : fallback || detail
+  } catch (error) {
+    logPortalGetError('getPortalCaseDetail', path, error)
+    if (fallback) return fallback
+    throw error
+  }
 }
 
 export function getPortalContactInfo() {

@@ -187,6 +187,7 @@ const editForm = reactive({
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const devMediaOrigin = import.meta.env.DEV ? 'http://localhost:8080' : ''
 
 onMounted(loadMedia)
 
@@ -302,7 +303,11 @@ async function copyUrl(item: AdminMediaAsset) {
 }
 
 function mediaUrl(item: AdminMediaAsset) {
-  return item.absoluteUrl || item.publicUrl
+  const url = item.absoluteUrl || item.publicUrl || ''
+  if (devMediaOrigin && url.startsWith('/media/public/')) {
+    return `${devMediaOrigin}${url}`
+  }
+  return url
 }
 
 function isImage(item: AdminMediaAsset) {

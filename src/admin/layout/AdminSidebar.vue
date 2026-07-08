@@ -9,10 +9,47 @@
     </router-link>
 
     <nav class="admin-sidebar__nav" aria-label="后台导航">
-      <router-link v-for="item in navItems" :key="item.to" class="admin-sidebar__item" :to="item.to">
-        <span class="admin-sidebar__icon">{{ item.icon }}</span>
-        <span>{{ item.label }}</span>
-      </router-link>
+      <template v-for="item in navItems" :key="item.key || item.to">
+        <router-link
+          v-if="item.type === 'link'"
+          class="admin-sidebar__item"
+          :class="{ 'is-active': isActiveItem(item) }"
+          :to="item.to"
+        >
+          <span class="admin-sidebar__icon">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </router-link>
+
+        <section
+          v-else
+          class="admin-sidebar__group"
+          :class="{ 'is-active': isActiveGroup(item), 'is-open': isGroupOpen(item) }"
+        >
+          <button
+            class="admin-sidebar__group-toggle"
+            type="button"
+            :aria-expanded="isGroupOpen(item)"
+            @click="toggleGroup(item.key)"
+          >
+            <span class="admin-sidebar__icon">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+            <span class="admin-sidebar__arrow">{{ isGroupOpen(item) ? '⌄' : '›' }}</span>
+          </button>
+
+          <div v-if="isGroupOpen(item)" class="admin-sidebar__group-items">
+            <router-link
+              v-for="child in item.children"
+              :key="child.to"
+              class="admin-sidebar__item admin-sidebar__subitem"
+              :class="{ 'is-active': isActiveItem(child) }"
+              :to="child.to"
+            >
+              <span class="admin-sidebar__icon">{{ child.icon }}</span>
+              <span>{{ child.label }}</span>
+            </router-link>
+          </div>
+        </section>
+      </template>
     </nav>
 
     <div class="admin-sidebar__note">
@@ -23,38 +60,136 @@
 </template>
 
 <script setup>
+import { reactive, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
 const navItems = [
-  { to: '/admin', icon: '⌂', label: '工作台' },
-  { to: '/admin/media', icon: '↥', label: '媒体上传' },
-  { to: '/admin/media-library', icon: '▧', label: '媒体库' },
-  { to: '/admin/page-sections', icon: 'S', label: '页面区块' },
-  { to: '/admin/site-config', icon: '◆', label: '站点配置' },
-  { to: '/admin/home-banner', icon: '▣', label: '首页 Banner' },
-  { to: '/admin/site-modules/home-metrics', icon: '1', label: '首页指标' },
-  { to: '/admin/site-modules/navigation', icon: '2', label: '导航菜单' },
-  { to: '/admin/site-modules/ai-cards', icon: '3', label: 'AI 卡片' },
-  { to: '/admin/site-modules/capability-categories', icon: '4', label: '能力底座' },
-  { to: '/admin/site-modules/client-logos', icon: '5', label: '客户 Logo' },
-  { to: '/admin/site-modules/strength-metrics', icon: '6', label: '实力指标' },
-  { to: '/admin/site-modules/partner-universities', icon: '7', label: '合作高校' },
-  { to: '/admin/site-modules/research-directions', icon: '8', label: '研发方向' },
-  { to: '/admin/site-modules/timeline-events', icon: '9', label: '时间线' },
-  { to: '/admin/site-modules/value-cards', icon: 'V', label: '价值卡片' },
-  { to: '/admin/site-modules/promise-content', icon: 'P', label: '承诺内容' },
-  { to: '/admin/site-modules/promise-tags', icon: 'T', label: '承诺标签' },
-  { to: '/admin/site-modules/content-tags', icon: '#', label: '内容标签' },
-  { to: '/admin/site-modules/content-categories', icon: 'Y', label: '内容分类' },
-  { to: '/admin/site-modules/content-relations', icon: 'R', label: '内容关联' },
-  { to: '/admin/site-modules/content-references', icon: 'Q', label: '内容引用' },
-  { to: '/admin/site-modules/business-registry', icon: 'B', label: '业务中心' },
-  { to: '/admin/site-modules/business-templates', icon: 'M', label: '业务模板' },
-  { to: '/admin/site-modules/industry-solutions', icon: 'I', label: '行业方案' },
-  { to: '/admin/site-modules/cooperation-direction-tags', icon: 'C', label: '合作方向' },
-  { to: '/admin/products', icon: '▤', label: '产品管理' },
-  { to: '/admin/cases', icon: '▥', label: '案例管理' },
-  { to: '/admin/contact-info', icon: '☎', label: '联系方式' },
-  { to: '/admin/leads', icon: '●', label: '线索管理' },
+  { type: 'link', to: '/admin', icon: '⌂', label: '工作台' },
+  { type: 'link', to: '/admin/media-library', icon: '▧', label: '媒体库' },
+  { type: 'link', to: '/admin/page-sections', icon: 'S', label: '页面区块' },
+  { type: 'link', to: '/admin/site-config', icon: '◆', label: '站点配置' },
+  { type: 'link', to: '/admin/site-modules/navigation', icon: '2', label: '导航菜单' },
+  {
+    type: 'group',
+    key: 'home',
+    icon: 'H',
+    label: '首页',
+    children: [
+      { to: '/admin/home-banner', icon: '▣', label: '首页 Banner' },
+      { to: '/admin/site-modules/home-metrics', icon: '1', label: '首页指标' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'ai-strategy',
+    icon: 'A',
+    label: 'AI战略',
+    children: [
+      { to: '/admin/site-modules/ai-cards', icon: '3', label: 'AI 卡片' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'product-system',
+    icon: 'P',
+    label: '产品体系',
+    children: [
+      { to: '/admin/site-modules/capability-categories', icon: '4', label: '能力底座' },
+      { to: '/admin/site-modules/capability-items', icon: '4', label: '能力底座子项' },
+      { to: '/admin/products', icon: '▤', label: '产品管理' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'innovation-rd',
+    icon: 'R',
+    label: '创新研发体系',
+    children: [
+      { to: '/admin/site-modules/partner-universities', icon: '7', label: '合作高校' },
+      { to: '/admin/site-modules/research-directions', icon: '8', label: '研发方向' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'product-industry',
+    icon: 'I',
+    label: '产品与行业方案',
+    children: [
+      { to: '/admin/site-modules/industry-solutions', icon: 'I', label: '行业方案' },
+      { to: '/admin/site-modules/cooperation-direction-tags', icon: 'C', label: '合作方向' },
+      { to: '/admin/cases', icon: '▥', label: '案例管理' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'about-us',
+    icon: 'U',
+    label: '关于我们',
+    children: [
+      { to: '/admin/site-modules/honors', icon: 'H', label: '荣誉资质' },
+      { to: '/admin/site-modules/timeline-events', icon: '9', label: '时间线' },
+      { to: '/admin/site-modules/client-logos', icon: '5', label: '客户 Logo' },
+      { to: '/admin/site-modules/strength-metrics', icon: '6', label: '实力指标' },
+      { to: '/admin/site-modules/value-cards', icon: 'V', label: '价值卡片' },
+      { to: '/admin/site-modules/promise-content', icon: 'P', label: '承诺内容' },
+      { to: '/admin/site-modules/promise-tags', icon: 'T', label: '承诺标签' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'contact-us',
+    icon: '☎',
+    label: '联系我们',
+    children: [
+      { to: '/admin/leads', icon: '●', label: '线索管理' },
+      { to: '/admin/contact-info', icon: '☎', label: '联系方式' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'content-assets',
+    icon: '#',
+    label: '内容资产',
+    children: [
+      { to: '/admin/site-modules/content-tags', icon: '#', label: '内容标签' },
+      { to: '/admin/site-modules/content-categories', icon: 'Y', label: '内容分类' },
+      { to: '/admin/site-modules/content-relations', icon: 'R', label: '内容关联' },
+      { to: '/admin/site-modules/content-references', icon: 'Q', label: '内容引用' },
+    ],
+  },
 ]
+
+const route = useRoute()
+const openGroups = reactive(Object.fromEntries(
+  navItems.filter((item) => item.type === 'group').map((item) => [item.key, true]),
+))
+
+function isActiveItem(item) {
+  return route.path === item.to
+}
+
+function isActiveGroup(item) {
+  return item.children.some((child) => isActiveItem(child))
+}
+
+function isGroupOpen(item) {
+  return Boolean(openGroups[item.key])
+}
+
+function toggleGroup(key) {
+  openGroups[key] = !openGroups[key]
+}
+
+watch(
+  () => route.path,
+  () => {
+    const activeGroup = navItems.find((item) => item.type === 'group' && isActiveGroup(item))
+    if (activeGroup) {
+      openGroups[activeGroup.key] = true
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -113,20 +248,28 @@ const navItems = [
   padding-right: 2px;
 }
 
-.admin-sidebar__item {
+.admin-sidebar__item,
+.admin-sidebar__group-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 38px;
+  width: 100%;
   padding: 0 12px;
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   color: #cbd5e1;
+  font: inherit;
   text-decoration: none;
   font-weight: 700;
+  cursor: pointer;
 }
 
-.admin-sidebar__item.router-link-active,
-.admin-sidebar__item:hover {
+.admin-sidebar__item.is-active,
+.admin-sidebar__item:hover,
+.admin-sidebar__group.is-active > .admin-sidebar__group-toggle,
+.admin-sidebar__group-toggle:hover {
   background: #1f2937;
   color: #fff;
 }
@@ -135,6 +278,28 @@ const navItems = [
   width: 22px;
   color: #93c5fd;
   text-align: center;
+}
+
+.admin-sidebar__group {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-sidebar__group-items {
+  display: grid;
+  gap: 4px;
+  padding-left: 12px;
+}
+
+.admin-sidebar__subitem {
+  min-height: 34px;
+  padding-left: 10px;
+  font-size: 13px;
+}
+
+.admin-sidebar__arrow {
+  margin-left: auto;
+  color: #93c5fd;
 }
 
 .admin-sidebar__note {

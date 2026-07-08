@@ -71,14 +71,14 @@
       </div>
     </section>
 
-    <section id="innovation" class="dark-section innovation-section">
+    <section v-if="showSection('innovation')" id="innovation" class="dark-section innovation-section">
       <div class="container innovation-inner">
         <div class="innovation-hero">
-          <span>创新研发体系</span>
-          <h2>技术创新与行业应用并重</h2>
-          <p>持续推动前沿技术与产业场景深度融合</p>
+          <span>{{ innovationSectionContent.tag }}</span>
+          <h2>{{ innovationSectionContent.title }}</h2>
+          <p>{{ innovationSectionContent.description }}</p>
         </div>
-        <h3 class="innovation-heading"><GraduationCap :size="34" />产学研合作</h3>
+        <h3 class="innovation-heading"><GraduationCap :size="34" />{{ innovationSectionContent.cooperationTitle }}</h3>
         <div class="school-row innovation-schools">
           <div v-for="school in partnerUniversities" :key="school.name">
             <img v-if="school.logoUrl && !failedUniversityLogos[school.name]" :src="school.logoUrl" :alt="school.fullName || school.name" @error="failedUniversityLogos[school.name] = true">
@@ -86,17 +86,17 @@
             <b v-if="school.fullName">{{ school.fullName }}</b>
           </div>
         </div>
-        <p class="innovation-note">围绕人工智能、数据治理、行业数字化与智能体应用开展联合研究与成果转化</p>
-        <h3 class="innovation-subtitle">重点研发方向</h3>
+        <p class="innovation-note">{{ innovationSectionContent.cooperationDescription }}</p>
+        <h3 class="innovation-subtitle">{{ innovationSectionContent.researchTitle }}</h3>
         <div class="research-grid">
           <div v-for="(direction, index) in researchDirections" :key="direction.title" class="research-card"><span class="research-icon"><img v-if="direction.iconUrl && !failedResearchIcons[direction.title]" :src="direction.iconUrl" :alt="direction.title" @error="failedResearchIcons[direction.title] = true"><component v-else :is="researchDirectionIcon(index)" :size="34" /></span><small v-if="direction.en">{{ direction.en }}</small><h4>{{ direction.title }}</h4><p>{{ direction.summary }}</p></div>
         </div>
       </div>
     </section>
 
-    <section id="cases" class="section soft industry-section">
+    <section v-if="showSection('cases')" id="cases" class="section soft industry-section">
       <div class="container industry-inner">
-        <SectionTitle tag="产品与行业方案" title="聚焦典型行业场景" desc="推动数字化与智能化价值落地" />
+        <SectionTitle :tag="casesSectionContent.tag" :title="casesSectionContent.title" :desc="casesSectionContent.description" />
         <div class="case-grid">
           <router-link v-for="(solution, index) in industrySolutions" :key="solution.name" to="/case" class="case-card industry-card" :class="industrySolutionClass(index)">
             <IconBox :name="industrySolutionIcon(solution, index)" :color="industrySolutionColor(index)" />
@@ -104,7 +104,7 @@
             <h3>{{ solution.name }}</h3>
             <p>{{ solution.description }}</p>
             <div class="customer">
-              <div class="customer-head"><b>典型客户</b><span>与标杆案例</span></div>
+              <div class="customer-head"><b>{{ casesSectionContent.customerTitle }}</b><span>{{ casesSectionContent.customerSubtitle }}</span></div>
               <div class="customer-tags">
                 <small v-for="tag in customerTags(solution)" :key="tag">{{ tag }}</small>
               </div>
@@ -179,9 +179,9 @@
           </div>
           <form class="form" @submit.prevent="handleLeadSubmit">
             <h3>{{ ctaContent.formTitle }}</h3>
-            <div class="form-row"><label>姓名 *<input v-model="leadForm.contactName" placeholder="您的姓名" /></label><label>公司 *<input v-model="leadForm.companyName" placeholder="公司名称" /></label></div>
-            <div class="form-row"><label>邮箱 *<input v-model="leadForm.email" placeholder="your@email.com" /></label><label>电话<input v-model="leadForm.phone" placeholder="联系电话" /></label></div>
-            <label>需求描述<textarea v-model="leadForm.demandContent" placeholder="请简要描述您的需求..."></textarea></label>
+            <div class="form-row"><label>{{ ctaContent.contactNameLabel }} *<input v-model="leadForm.contactName" :placeholder="ctaContent.contactNamePlaceholder" /></label><label>{{ ctaContent.companyNameLabel }} *<input v-model="leadForm.companyName" :placeholder="ctaContent.companyNamePlaceholder" /></label></div>
+            <div class="form-row"><label>{{ ctaContent.emailLabel }} *<input v-model="leadForm.email" :placeholder="ctaContent.emailPlaceholder" /></label><label>{{ ctaContent.phoneLabel }}<input v-model="leadForm.phone" :placeholder="ctaContent.phonePlaceholder" /></label></div>
+            <label>{{ ctaContent.demandLabel }}<textarea v-model="leadForm.demandContent" :placeholder="ctaContent.demandPlaceholder"></textarea></label>
             <button type="submit" class="primary full" :disabled="submitting">{{ submitting ? ctaContent.submittingText : ctaContent.submitText }}</button>
             <p v-if="leadMessage">{{ leadMessage }}</p>
           </form>
@@ -272,9 +272,11 @@ const leadForm = ref({
 })
 const pageSectionsReady = ref(false)
 const pageSectionsFailed = ref(false)
+const isPageSectionFallback = ref(true)
+const isPageSectionPartial = ref(false)
 const pageSectionMap = ref<Record<string, PortalPageSection>>({})
 
-const homeSectionCodes = ['hero', 'products', 'ai-capability', 'about', 'contact', 'cta']
+const homeSectionCodes = ['hero', 'products', 'ai-capability', 'innovation', 'cases', 'about', 'contact', 'cta']
 
 const productDisplayMeta = defaultProducts.map((product) => ({
   id: product.id,
@@ -290,7 +292,7 @@ const capabilityClasses = ['management', 'data', 'ai']
 const capabilityDescriptions = [
   '帮助大型组织实现集团化、标准化与精细化运营',
   '打通多源数据与业务流程，构建统一的数据资产体系',
-  '推动AI进入真实业务场景',
+  '推动 AI 进入真实业务场景',
 ]
 const clientLogoFallbackIcons = [Building2, Zap, BarChart3, Landmark, Building2]
 const strengthMetricIcons = [Users, Building2, Award, Trophy]
@@ -325,6 +327,10 @@ const productsSectionContent = computed(() => {
     description: firstText(section?.description, payload.description, homePageSectionFallbacks.products.description),
     baseTitle: firstText(payload.baseTitle, homePageSectionFallbacks.products.baseTitle),
     matrixTitle: firstText(payload.matrixTitle, homePageSectionFallbacks.products.matrixTitle),
+    capabilityDescriptions: asTextArray(
+      payload.capabilityDescriptions,
+      homePageSectionFallbacks.products.capabilityDescriptions,
+    ),
   }
 })
 
@@ -336,6 +342,33 @@ const aiSectionContent = computed(() => {
     tag: firstText(payload.tag, homePageSectionFallbacks.aiCapability.tag),
     title: firstText(section?.title, payload.title, homePageSectionFallbacks.aiCapability.title),
     description: firstText(section?.description, payload.description, homePageSectionFallbacks.aiCapability.description),
+  }
+})
+
+const innovationSectionContent = computed(() => {
+  const section = pageSectionMap.value.innovation
+  const payload = sectionPayload('innovation')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.innovation.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.innovation.title),
+    description: firstText(section?.description, payload.description, homePageSectionFallbacks.innovation.description),
+    cooperationTitle: firstText(payload.cooperationTitle, section?.subtitle, homePageSectionFallbacks.innovation.cooperationTitle),
+    cooperationDescription: firstText(payload.cooperationDescription, homePageSectionFallbacks.innovation.cooperationDescription),
+    researchTitle: firstText(payload.researchTitle, homePageSectionFallbacks.innovation.researchTitle),
+  }
+})
+
+const casesSectionContent = computed(() => {
+  const section = pageSectionMap.value.cases
+  const payload = sectionPayload('cases')
+
+  return {
+    tag: firstText(payload.tag, homePageSectionFallbacks.cases.tag),
+    title: firstText(section?.title, payload.title, homePageSectionFallbacks.cases.title),
+    description: firstText(section?.description, payload.description, homePageSectionFallbacks.cases.description),
+    customerTitle: firstText(payload.customerTitle, homePageSectionFallbacks.cases.customerTitle),
+    customerSubtitle: firstText(payload.customerSubtitle, homePageSectionFallbacks.cases.customerSubtitle),
   }
 })
 
@@ -381,10 +414,30 @@ const ctaContent = computed(() => {
     aiText: firstText(payload.aiText, section?.description, homePageSectionFallbacks.cta.aiText),
     aiHref: firstText(payload.aiHref, homePageSectionFallbacks.cta.aiHref),
     formTitle: firstText(payload.formTitle, section?.subtitle, homePageSectionFallbacks.cta.formTitle),
+    contactNameLabel: firstText(payload.contactNameLabel, homePageSectionFallbacks.cta.contactNameLabel),
+    contactNamePlaceholder: firstText(payload.contactNamePlaceholder, homePageSectionFallbacks.cta.contactNamePlaceholder),
+    companyNameLabel: firstText(payload.companyNameLabel, homePageSectionFallbacks.cta.companyNameLabel),
+    companyNamePlaceholder: firstText(payload.companyNamePlaceholder, homePageSectionFallbacks.cta.companyNamePlaceholder),
+    emailLabel: firstText(payload.emailLabel, homePageSectionFallbacks.cta.emailLabel),
+    emailPlaceholder: firstText(payload.emailPlaceholder, homePageSectionFallbacks.cta.emailPlaceholder),
+    phoneLabel: firstText(payload.phoneLabel, homePageSectionFallbacks.cta.phoneLabel),
+    phonePlaceholder: firstText(payload.phonePlaceholder, homePageSectionFallbacks.cta.phonePlaceholder),
+    demandLabel: firstText(payload.demandLabel, homePageSectionFallbacks.cta.demandLabel),
+    demandPlaceholder: firstText(payload.demandPlaceholder, homePageSectionFallbacks.cta.demandPlaceholder),
     submitText: firstText(payload.submitText, homePageSectionFallbacks.cta.submitText),
     submittingText: firstText(payload.submittingText, homePageSectionFallbacks.cta.submittingText),
     successMessage: firstText(payload.successMessage, homePageSectionFallbacks.cta.successMessage),
     failureMessage: firstText(payload.failureMessage, homePageSectionFallbacks.cta.failureMessage),
+    contactNameRequiredMessage: firstText(payload.contactNameRequiredMessage, homePageSectionFallbacks.cta.contactNameRequiredMessage),
+    contactNameMaxMessage: firstText(payload.contactNameMaxMessage, homePageSectionFallbacks.cta.contactNameMaxMessage),
+    companyNameRequiredMessage: firstText(payload.companyNameRequiredMessage, homePageSectionFallbacks.cta.companyNameRequiredMessage),
+    companyNameMaxMessage: firstText(payload.companyNameMaxMessage, homePageSectionFallbacks.cta.companyNameMaxMessage),
+    emailRequiredMessage: firstText(payload.emailRequiredMessage, homePageSectionFallbacks.cta.emailRequiredMessage),
+    emailMaxMessage: firstText(payload.emailMaxMessage, homePageSectionFallbacks.cta.emailMaxMessage),
+    emailInvalidMessage: firstText(payload.emailInvalidMessage, homePageSectionFallbacks.cta.emailInvalidMessage),
+    phoneMaxMessage: firstText(payload.phoneMaxMessage, homePageSectionFallbacks.cta.phoneMaxMessage),
+    phoneInvalidMessage: firstText(payload.phoneInvalidMessage, homePageSectionFallbacks.cta.phoneInvalidMessage),
+    demandMaxMessage: firstText(payload.demandMaxMessage, homePageSectionFallbacks.cta.demandMaxMessage),
   }
 })
 
@@ -406,6 +459,14 @@ function firstText(...values: unknown[]) {
   return ''
 }
 
+function asTextArray(value: unknown, fallback: unknown[] = []) {
+  const source = Array.isArray(value) && value.length ? value : fallback
+
+  return source
+    .map((item) => asText(item))
+    .filter(Boolean)
+}
+
 function fillToDefaultCount<T>(items: T[], defaults: T[]) {
   const maxCount = defaults.length
   const limited = items.slice(0, maxCount)
@@ -416,7 +477,8 @@ function fillToDefaultCount<T>(items: T[], defaults: T[]) {
 }
 
 function showSection(sectionCode: string) {
-  if (!pageSectionsReady.value || pageSectionsFailed.value) return true
+  if (!pageSectionsReady.value || pageSectionsFailed.value || isPageSectionFallback.value) return true
+  if (isPageSectionPartial.value && !pageSectionMap.value[sectionCode]) return true
   return Boolean(pageSectionMap.value[sectionCode])
 }
 
@@ -563,6 +625,12 @@ function capabilityClass(index: number) {
 }
 
 function capabilityDescription(index: number) {
+  const descriptions = productsSectionContent.value.capabilityDescriptions
+
+  if (descriptions.length) {
+    return descriptions[index % descriptions.length]
+  }
+
   return capabilityDescriptions[index % capabilityDescriptions.length]
 }
 
@@ -633,16 +701,18 @@ function validateLeadForm() {
   const phone = form.phone.trim()
   const demandContent = form.demandContent.trim()
 
-  if (!contactName) return '请填写姓名'
-  if (contactName.length > 64) return '姓名不能超过64个字符'
-  if (!companyName) return '请填写公司名称'
-  if (companyName.length > 128) return '公司名称不能超过128个字符'
-  if (!email) return '请填写邮箱'
-  if (email.length > 128) return '邮箱不能超过128个字符'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '请填写正确的邮箱'
-  if (phone && phone.length > 64) return '联系电话不能超过64个字符'
-  if (phone && !/^[0-9+\-()\s]+$/.test(phone)) return '联系电话格式不正确'
-  if (demandContent && demandContent.length > 1000) return '需求描述不能超过1000个字符'
+  const messages = ctaContent.value
+
+  if (!contactName) return messages.contactNameRequiredMessage
+  if (contactName.length > 64) return messages.contactNameMaxMessage
+  if (!companyName) return messages.companyNameRequiredMessage
+  if (companyName.length > 128) return messages.companyNameMaxMessage
+  if (!email) return messages.emailRequiredMessage
+  if (email.length > 128) return messages.emailMaxMessage
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return messages.emailInvalidMessage
+  if (phone && phone.length > 64) return messages.phoneMaxMessage
+  if (phone && !/^[0-9+\-()\s]+$/.test(phone)) return messages.phoneInvalidMessage
+  if (demandContent && demandContent.length > 1000) return messages.demandMaxMessage
 
   return ''
 }
@@ -651,9 +721,31 @@ async function loadHomePageSections() {
   try {
     const sections = await getPortalPageSections('home')
     pageSectionsFailed.value = false
-    applyHomePageSections(Array.isArray(sections) ? sections : [])
+    const normalizedSections = Array.isArray(sections) ? sections : []
+    if (normalizedSections.length === 0) {
+      isPageSectionFallback.value = true
+      isPageSectionPartial.value = false
+      pageSectionMap.value = {}
+      return
+    }
+    const managedSectionCodes = new Set(
+      normalizedSections
+        .map((section) => section.sectionCode)
+        .filter((sectionCode) => homeSectionCodes.includes(sectionCode)),
+    )
+    if (managedSectionCodes.size === 0) {
+      isPageSectionFallback.value = true
+      isPageSectionPartial.value = false
+      pageSectionMap.value = {}
+      return
+    }
+    isPageSectionFallback.value = false
+    isPageSectionPartial.value = managedSectionCodes.size < homeSectionCodes.length
+    applyHomePageSections(normalizedSections)
   } catch (error) {
     pageSectionsFailed.value = true
+    isPageSectionFallback.value = true
+    isPageSectionPartial.value = false
     pageSectionMap.value = {}
     console.error('[Portal API] page-sections failed, fallback to site.js', error)
   } finally {

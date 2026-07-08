@@ -4,15 +4,15 @@
     <section class="section">
       <div class="container">
         <SectionTitle
-          tag="产品详情"
+          :tag="productDetailContent.tag"
           :title="pageTitle"
           :desc="pageDescription"
         />
 
-        <div v-if="loading" class="detail-state">正在加载产品详情...</div>
+        <div v-if="loading" class="detail-state">{{ productDetailContent.loadingText }}</div>
 
         <div v-else-if="notFound" class="detail-state error">
-          未找到对应产品，可能已下线或链接已失效。
+          {{ productDetailContent.notFoundText }}
         </div>
 
         <template v-else-if="product">
@@ -23,18 +23,18 @@
             <div class="detail-main">
               <div class="detail-meta">
                 <span v-if="product.status">{{ product.status }}</span>
-                <span v-if="product.updatedAt">更新于 {{ formatDate(product.updatedAt) }}</span>
+                <span v-if="product.updatedAt">{{ productDetailContent.updatedAtPrefix }} {{ formatDate(product.updatedAt) }}</span>
               </div>
               <h2>{{ product.title }}</h2>
               <p class="detail-desc">{{ product.description }}</p>
               <div v-if="richContent" class="rich-content" v-html="richContent"></div>
-              <div v-else class="detail-empty">暂无更多详情内容。</div>
+              <div v-else class="detail-empty">{{ productDetailContent.emptyContentText }}</div>
             </div>
           </article>
 
           <section v-if="hasProductRecommendations" class="recommendation-section">
             <div v-if="relatedCases.length" class="recommendation-group">
-              <h3>相关案例</h3>
+              <h3>{{ productDetailContent.relatedCasesTitle }}</h3>
               <div class="recommendation-grid">
                 <RouterLink
                   v-for="item in relatedCases"
@@ -50,7 +50,7 @@
             </div>
 
             <div v-if="relatedIndustrySolutions.length" class="recommendation-group">
-              <h3>相关行业方案</h3>
+              <h3>{{ productDetailContent.relatedIndustrySolutionsTitle }}</h3>
               <div class="recommendation-grid">
                 <article
                   v-for="item in relatedIndustrySolutions"
@@ -66,7 +66,7 @@
           </section>
         </template>
 
-        <div v-else class="detail-state">暂无产品详情。</div>
+        <div v-else class="detail-state">{{ productDetailContent.emptyDetailText }}</div>
       </div>
     </section>
   </main>
@@ -80,6 +80,7 @@ import {
   getPortalProductDetail,
   getPortalProducts,
 } from '../api/portal'
+import { getPortalPageSections, productDetailPageSectionFallbacks } from '../api/pageSection'
 import SiteHeader from '../components/SiteHeader.vue'
 import FooterSection from '../components/FooterSection.vue'
 import SectionTitle from '../components/SectionTitle.vue'
@@ -88,13 +89,85 @@ const route = useRoute()
 const loading = ref(false)
 const notFound = ref(false)
 const product = ref(null)
+const pageSectionMap = ref({})
 
-const pageTitle = computed(() => product.value?.title || '产品详情')
-const pageDescription = computed(() => product.value?.description || '真实贴合行业业务场景的云台生产产品。')
+const productDetailContent = computed(() => {
+  const hero = pageSectionMap.value.hero || {}
+  const heroPayload = sectionPayload('hero')
+  const statesPayload = sectionPayload('states')
+  const recommendationsPayload = sectionPayload('recommendations')
+  const seoPayload = sectionPayload('seo')
+
+  return {
+    tag: firstText(heroPayload.tag, hero.title, productDetailPageSectionFallbacks.hero.tag),
+    description: firstText(hero.description, heroPayload.description, productDetailPageSectionFallbacks.hero.description),
+    loadingText: firstText(statesPayload.loadingText, productDetailPageSectionFallbacks.states.loadingText),
+    notFoundText: firstText(statesPayload.notFoundText, productDetailPageSectionFallbacks.states.notFoundText),
+    emptyContentText: firstText(statesPayload.emptyContentText, productDetailPageSectionFallbacks.states.emptyContentText),
+    emptyDetailText: firstText(statesPayload.emptyDetailText, productDetailPageSectionFallbacks.states.emptyDetailText),
+    updatedAtPrefix: firstText(statesPayload.updatedAtPrefix, productDetailPageSectionFallbacks.states.updatedAtPrefix),
+    relatedCasesTitle: firstText(recommendationsPayload.relatedCasesTitle, productDetailPageSectionFallbacks.recommendations.relatedCasesTitle),
+    relatedIndustrySolutionsTitle: firstText(recommendationsPayload.relatedIndustrySolutionsTitle, productDetailPageSectionFallbacks.recommendations.relatedIndustrySolutionsTitle),
+    defaultTitle: firstText(seoPayload.defaultTitle, productDetailPageSectionFallbacks.seo.defaultTitle),
+    titleSuffix: firstText(seoPayload.titleSuffix, productDetailPageSectionFallbacks.seo.titleSuffix),
+  }
+})
+const pageTitle = computed(() => product.value?.title || productDetailContent.value.defaultTitle)
+const pageDescription = computed(() => product.value?.description || productDetailContent.value.description)
 const richContent = computed(() => product.value?.content || fallbackContent(product.value?.description))
 const relatedCases = computed(() => product.value?.relatedCases || [])
 const relatedIndustrySolutions = computed(() => product.value?.relatedIndustrySolutions || [])
 const hasProductRecommendations = computed(() => relatedCases.value.length > 0 || relatedIndustrySolutions.value.length > 0)
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function asText(value) {
+  if (value === null || value === undefined) return ''
+  return String(value).trim()
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = asText(value)
+    if (text) return text
+  }
+
+  return ''
+}
+
+function parseSectionContent(section) {
+  if (!section?.contentJson) return {}
+
+  try {
+    const parsed = JSON.parse(section.contentJson)
+    return isRecord(parsed) ? parsed : {}
+  } catch (error) {
+    console.error(`[Portal API] product-detail page-section ${section.sectionCode} contentJson invalid`, error)
+    return {}
+  }
+}
+
+function sectionPayload(sectionCode) {
+  return parseSectionContent(pageSectionMap.value[sectionCode])
+}
+
+async function loadProductDetailSections() {
+  try {
+    const sections = await getPortalPageSections('product-detail')
+    const map = {}
+    if (Array.isArray(sections)) {
+      sections.forEach((section) => {
+        if (section?.sectionCode) map[section.sectionCode] = section
+      })
+    }
+    pageSectionMap.value = map
+  } catch (error) {
+    console.error('[Portal API] product-detail page-sections failed, fallback to default copy', error)
+    pageSectionMap.value = {}
+  }
+}
 
 async function resolveProductId() {
   const id = route.params.id
@@ -153,7 +226,9 @@ function formatDate(value) {
 }
 
 function applySeo(title, description) {
-  document.title = title ? `${title} - 武汉云台数据` : '产品详情 - 武汉云台数据'
+  const suffix = productDetailContent.value.titleSuffix
+  const defaultTitle = productDetailContent.value.defaultTitle
+  document.title = title ? `${title} - ${suffix}` : `${defaultTitle} - ${suffix}`
   let meta = document.querySelector('meta[name="description"]')
   if (!meta) {
     meta = document.createElement('meta')
@@ -163,7 +238,10 @@ function applySeo(title, description) {
   meta.setAttribute('content', description || '')
 }
 
-onMounted(loadProduct)
+onMounted(() => {
+  loadProductDetailSections()
+  loadProduct()
+})
 watch(() => route.params.id, loadProduct)
 </script>
 
